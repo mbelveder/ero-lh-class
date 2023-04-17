@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "lh-code"
+version = "0.1.0"
+description = ""
+authors = ["Miсhael Belvedersky <mike.belveder@gmail.com>"]
+readme = "README.md"
+packages = [{include = "lh_class"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.scripts]
+lh-class = "lh_class.scripts.lh_class:main"
