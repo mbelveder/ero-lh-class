@@ -30,7 +30,9 @@ SDSS_PATH = f'{DATA_BASE_PATH}/SDSS/sdss_tap.csv'
 # TODO: check if the cross-match file is up to date (why some date is in the name?)
 NNMAG_CAT_FILENAME = 'ERO_lhpv_03_23_sd01_a15_g14_desi_nway_match_21_10_22.gz_pkl'
 DESI_MATCH_PATH = f'{DATA_BASE_PATH}/SB/{NNMAG_CAT_FILENAME}'
+MILQ_PATH = f'{DATA_BASE_PATH}/SB/milliquas_LH.csv'
 
+# ECF given by MG in 2022
 ECF_MG_241122 = 0.7228
 
 
@@ -56,8 +58,7 @@ def main():
     ero_desi_nnmag_df['flux_05-20_LH_ERR'] = ero_desi_nnmag_df['ML_FLUX_ERR_0'] * ECF_MG_241122
     erosita_columns = list(ero_desi_nnmag_df.columns.values)
 
-    print('* ' * 15)
-    print('GAIA CROSS-MATCH WITH ERO NNMAG', '\n')
+    print('GAIA PREPROCESSING', '\n')
 
     # Total porper motion and its error
     uncert_pmra = unumpy.uarray(gaia_df['pmra'], gaia_df['pmra_error'])
@@ -65,6 +66,9 @@ def main():
     upm = (uncert_pmra ** 2 + uncert_pmdec ** 2) ** .5
     gaia_df['pm'] = unumpy.nominal_values(upm)
     gaia_df['pm_error'] = unumpy.std_devs(upm)
+
+    print('* ' * 15)
+    print('GAIA CROSS-MATCH WITH ERO NNMAG', '\n')
 
     desi_gaia_df = lhf.cross_match_data_frames(
         df1=ero_desi_nnmag_df,
@@ -80,8 +84,7 @@ def main():
         ero_sep=True
     )
 
-    print('* ' * 10)
-    print('SDSS CROSS-MATCH WITH ERO NNMAG', '\n')
+    print('SDSS PREPROCESSING', '\n')
 
     sdss_df = pd.read_csv(SDSS_PATH)
     sdss_spectral = sdss_df.query('~spCl.isna()')
@@ -91,6 +94,9 @@ def main():
         sdss_spectral['e_RA_ICRS']**2 + sdss_spectral['e_DE_ICRS']**2
         )
     sdss_spectral['radec_err_sec'] = sdss_radec_err_sec
+
+    print('* ' * 10)
+    print('SDSS CROSS-MATCH WITH ERO NNMAG', '\n')
 
     desi_sdss_df = lhf.cross_match_data_frames(
         ero_desi_nnmag_df,
@@ -106,6 +112,17 @@ def main():
 
     desi_sdss_df['SDSS_NAME'] = desi_sdss_df['SDSS_SDSS16']
     desi_sdss_df['SDSS_subCl'] = desi_sdss_df['SDSS_subCl'].str.strip()
+
+    print(desi_sdss_df.SDSS_spCl.value_counts())
+    print('________')
+    print(desi_sdss_df.groupby('SDSS_spCl')['SDSS_subCl'].value_counts())
+
+
+    milq = pd.read_csv(MILQ_PATH, sep=',')
+    milq.NAME = milq.NAME.str.strip()
+
+    print('* ' * 10)
+    print('MILQ CROSS-MATCH WITH ERO NNMAG', '\n')
 
 
 if __name__ == '__main__':
