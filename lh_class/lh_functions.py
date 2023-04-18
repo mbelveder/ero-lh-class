@@ -1299,10 +1299,10 @@ def star_marker(df: pd.DataFrame, s_n_threshold: float, SB=True) -> pd.DataFrame
     """
 
     if SB:
-        prefix = f'GAIA_'
+        prefix = 'GAIA_'
         n_matches = np.sum(~df[f'{prefix}source_id'].isna())
-        print((f'{n_matches} mathces with Gaia'), '\n')
-    
+        print((f'{n_matches} mathces with GAIA'), '\n')
+
     else:
         prefix = ''
 
@@ -1321,14 +1321,12 @@ def star_marker(df: pd.DataFrame, s_n_threshold: float, SB=True) -> pd.DataFrame
             )
         )
 
-    print()
     print(np.sum(star_mask), 'stars found')
 
     result_colname = 'class_GAIA_class'
 
     df.loc[star_mask, result_colname] = 'GALACTIC'
-    print()
-    print(f'Markers are written in {result_colname} column')
+    print(f'Markers are written in the {result_colname} column')
 
     return df
 
