@@ -3,7 +3,6 @@
 import re
 import pandas as pd
 import numpy as np
-import seaborn as sns
 from lh_class import lh_functions as lhf
 from uncertainties import unumpy
 from functools import reduce
@@ -33,6 +32,10 @@ NNMAG_CAT_FILENAME = 'ERO_lhpv_03_23_sd01_a15_g14_desi_nway_match_21_10_22.gz_pk
 DESI_MATCH_PATH = f'{DATA_BASE_PATH}/SB/{NNMAG_CAT_FILENAME}'
 MILQ_PATH = f'{DATA_BASE_PATH}/SB/milliquas_LH.csv'
 SIMBAD_PATH = f'{DATA_BASE_PATH}/simbad_df.pkl'
+
+# path to save the table of sources matched with external catalogs
+# and classified as extragalactic/not extragalactic
+SAVEPATH = 'data/output_data/matched_and_classified.gz_pkl'
 
 # ECF given by MG in 2022
 ECF_MG_241122 = 0.7228
@@ -201,7 +204,7 @@ def main():
     all_matched_df.fillna(np.nan, inplace=True)
 
     print('PRELIMINARY CLASSIFICATION...', '\n')
-    print('Joining subclasses in bigger groups for every external input catalog', '\n')
+    print('Joining subclasses in bigger groups for every external input catalog...', '\n')
     # add flags for GAIA stars
     all_matched_df = lhf.star_marker(all_matched_df, s_n_threshold=5)
 
@@ -333,8 +336,10 @@ def main():
     class_df = class_df.sort_values(by='zorder', ascending=False)
 
     final_class_stat = pd.DataFrame(class_df.class_final.value_counts())
+    print()
     print(final_class_stat.to_string(), '\n')
 
+    # count sources without classification
     filtered_class_df = class_df.query(
         '~(desi_rel_dered_mag_z.isna() & class_final=="UNKNOWN")'
         )
@@ -344,13 +349,49 @@ def main():
 
     data_loss = len(class_df) - len(filtered_class_df)
     data_loss_percent = 1 - len(filtered_class_df) / len(class_df)
-    print(f'Потеряно из-за пропусков: {data_loss_percent:.1%} ({data_loss})')
+    print(f'Потеряно из-за пропусков: {data_loss_percent:.1%} ({data_loss})', '\n')
 
-    print('FINAL CLASSIFICATION...')
+    print('FINAL CLASSIFICATION...', '\n')
     filtered_class_df['extragal'] = filtered_class_df.apply(
         lhf.extragal_classifier, axis=1
         )
-    print(filtered_class_df['extragal'].value_counts().to_string())
+    print(filtered_class_df['extragal'].value_counts().to_string(), '\n')
+
+    # add final classification
+    class_df['is_extragal'] = class_df.apply(lhf.extragal_classifier, axis=1)
+
+    paper_columns = [
+        'srcname_fin', 'RA_fin', 'DEC_fin', 'pos_r98', 'DET_LIKE_0',
+        'ML_CTS_0', 'ML_CTS_ERR_0', 'ML_RATE_0', 'ML_RATE_ERR_0', 'ML_BKG_0',
+        'ML_EXP_1', 'flux_05-20_LH', 'flux_05-20_LH_ERR', 'DIST_NN',
+        'NH', 'desi_id', 'desi_ra', 'desi_dec', 'desi_dered_mag_g',
+        'desi_dered_mag_r', 'desi_dered_mag_z', 'desi_dered_mag_w1',
+        'desi_dered_mag_w2', 'desi_type', 'nway_prob_has_match',
+        'nway_prob_this_match', 'class_final', 'redshift_final',
+        'z_spec_origin', 'class_source', 'class_source_index', 'is_extragal'
+    ]
+
+    columns_to_rename = {
+            'srcname_fin': 'NAME', 'RA_fin': 'RA', 'DEC_fin': 'DEC',
+            'pos_r98': 'POS_R98', 'DET_LIKE_0': 'DET_LIKE', 'ML_CTS_0': 'CTS',
+            'ML_CTS_ERR_0': 'CTS_ERR', 'ML_RATE_0': 'SRC_RATE',
+            'ML_RATE_ERR_0': 'SRC_RATE_ERR', 'ML_BKG_0': 'BKG_RATE',
+            'ML_EXP_1': 'EXP', 'DIST_NN': 'DIST_CN', 'flux_05-20_LH': 'FLUX_05-20',
+            'flux_05-20_LH_ERR': 'FLUX_05-20_ERR', 'class_source': 'class_origin',
+            'class_source_index': 'class_origin_index', 'class_final': 'src_class',
+            'redshift_final': 'redshift', 'nway_prob_has_match': 'desi_p_any',
+            'nway_prob_this_match': 'desi_p_i'
+            }
+
+    paper_cat_df = (
+            class_df[paper_columns]
+            .rename(columns=columns_to_rename)
+            .reset_index(drop=True)
+            )
+
+    paper_cat_df.to_pickle(SAVEPATH, compression='gzip')
+
+    print(f'Merged and classified catalog is saved in {SAVEPATH}')
 
 
 if __name__ == '__main__':

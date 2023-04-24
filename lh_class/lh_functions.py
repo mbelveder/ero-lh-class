@@ -1326,7 +1326,7 @@ def star_marker(df: pd.DataFrame, s_n_threshold: float, SB=True) -> pd.DataFrame
     result_colname = 'class_GAIA_class'
 
     df.loc[star_mask, result_colname] = 'GALACTIC'
-    print(f'Markers are written in the {result_colname} column')
+    print(f'Markers are written in the {result_colname} column', '\n')
 
     return df
 
