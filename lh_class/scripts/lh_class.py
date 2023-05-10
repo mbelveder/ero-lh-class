@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 import re
+import os
 import pandas as pd
 import numpy as np
 from lh_class import lh_functions as lhf
 from uncertainties import unumpy
 from functools import reduce
+from pathlib import Path
 pd.options.mode.chained_assignment = None
 
 DATA_BASE_PATH = '/Users/mike/Repos/classification_LH/data'
@@ -41,10 +43,9 @@ SAVEPATH = 'data/output_data/matched_and_classified.gz_pkl'
 ECF_MG_241122 = 0.7228
 
 
-def main():
+def spectral_parsing():
 
-    print()
-    print('Welcome to the LH classification script!', '\n')
+    # cross-match with spectral catalogs and databases
 
     print('Reading the input catalogs...')
     desi_df = pd.read_pickle(DESI_PATH, compression='gzip')
@@ -55,7 +56,7 @@ def main():
 
     # read nnmag match results
     ero_desi_nnmag_df = pd.read_pickle(DESI_MATCH_PATH, compression='gzip')
-    # TODO: up to date nnmag catalog needs no index reset
+    # TODO: up-to-date nnmag catalog needs no index reset
     ero_desi_nnmag_df.reset_index(drop=True, inplace=True)
     print('DESI nnmag matches:', len(ero_desi_nnmag_df))
 
@@ -70,7 +71,7 @@ def main():
     print('* ' * 15)
     print('GAIA PREROCESSING...', '\n')
 
-    # Total porper motion and its error
+    # total porper motion and its error
     uncert_pmra = unumpy.uarray(gaia_df['pmra'], gaia_df['pmra_error'])
     uncert_pmdec = unumpy.uarray(gaia_df['pmdec'], gaia_df['pmdec_error'])
     upm = (uncert_pmra ** 2 + uncert_pmdec ** 2) ** .5
@@ -191,52 +192,7 @@ def main():
         simbad_df['z_rel_mask'], simbad_df['Z_VALUE'], np.nan
         )
 
-    print('JOINING ALL MATCHES...', '\n')
-    # merge desi_gaia with desi_sdss with desi to create a new desi_gaia_sdss catalogue
-    # https://stackoverflow.com/questions/44327999/python-pandas-merge-multiple-dataframes
-    data_frames = [ero_desi_nnmag_df, desi_gaia_df, desi_sdss_df, desi_milq_df]
-
-    all_matched_df = reduce(
-        lambda left, right: pd.merge(
-            left, right, on=erosita_columns, how='outer'), data_frames
-            ).fillna(np.nan)
-
-    all_matched_df.fillna(np.nan, inplace=True)
-
-    print('PRELIMINARY CLASSIFICATION...', '\n')
-    print('Joining subclasses in bigger groups for every external input catalog...', '\n')
-    # add flags for GAIA stars
-    all_matched_df = lhf.star_marker(all_matched_df, s_n_threshold=5)
-
-    print('GAIA stat:')
-    print(all_matched_df.class_GAIA_class.value_counts().to_string(), '\n')
-
-    all_matched_df.loc[:, 'class_SDSS_class'] = all_matched_df.SDSS_spCl.str.strip()
-
-    # joining SDSS subclasses
-    # SDSS_class GALAXY with SDSS_subCl AGN is QSO
-    all_matched_df['class_SDSS_class'] = (
-        all_matched_df['class_SDSS_class']
-        .where(all_matched_df['SDSS_subCl'] != "AGN", 'QSO')
-        )
-
-    print('SDSS stat:')
-    print(all_matched_df['class_SDSS_class'].value_counts().to_string(), '\n')
-
-    # joining MILQ subclasses
-    milq_qso_types = ['QSO', 'AGN', 'AGN-NL', 'QSO-NL', 'BLAZAR', 'RADIO-SOURCE']
-    mask_extragal = all_matched_df.eval("MILQ_TYPE_spec in @milq_qso_types")
-    all_matched_df.loc[mask_extragal, 'class_MILQ_class'] = 'QSO'
-
-    mask_extragal = all_matched_df.eval("MILQ_TYPE_spec in ['GALAXY']")
-    all_matched_df.loc[mask_extragal, 'class_MILQ_class'] = 'GALAXY'
-
-    mask_extragal = all_matched_df.eval("MILQ_TYPE_spec in ['STAR', 'MOVING-OBJECT']")
-    all_matched_df.loc[mask_extragal, 'class_MILQ_class'] = 'STAR'
-
-    print('MILQ stat:')
-    print(all_matched_df['class_MILQ_class'].value_counts().to_string(), '\n')
-
+    # leave only the closest neighbours?
     simbad_closest_df = simbad_df.loc[
         simbad_df.groupby('srcname_fin').DISTANCE_RESULT.idxmin()
         ]
@@ -262,7 +218,7 @@ def main():
         simbad_closest_df['OTYPE_V'].replace(rough_class_dict)
         )
 
-    # These strings contain word 'Galaxy' but appear to be AGN
+    # these strings contain the word 'Galaxy' but appear to be AGN
     additional_qso = [
         'Active Galaxy Nucleus',
         'Seyfert 1 Galaxy',
@@ -287,41 +243,101 @@ def main():
         'OTYPE_V', 'SIMBAD_z_rel', 'RVZ_ERROR'
         ]
 
-    class_df = all_matched_df.merge(
-        simbad_closest_df[simbad_useful_columns],
+    simbad_closest_df = simbad_closest_df[simbad_useful_columns]
+
+    print('JOINING ALL MATCHES...', '\n')
+    # merge desi_gaia with desi_sdss with desi to create a new desi_gaia_sdss catalogue
+    # https://stackoverflow.com/questions/44327999/python-pandas-merge-multiple-dataframes
+    data_frames = [ero_desi_nnmag_df, desi_gaia_df, desi_sdss_df, desi_milq_df]
+
+    all_matched_df = reduce(
+        lambda left, right: pd.merge(
+            left, right, on=erosita_columns, how='outer'), data_frames
+            ).fillna(np.nan)
+
+    all_matched_df.fillna(np.nan, inplace=True)
+
+    spec_class_df = all_matched_df.merge(
+        simbad_closest_df,
         on='srcname_fin', how='left'
         )
 
-    class_df['desi_extended'] = class_df['desi_type'] != 'PSF'
+    return spec_class_df
 
-    class_df.loc[:, 'class_final'] = class_df.apply(
+
+def main():
+
+    print()
+    print('Welcome to the LH classification script!', '\n')
+
+    spec_class_df = spectral_parsing()
+
+    # classification: extragalactic or not
+
+    print('PRELIMINARY CLASSIFICATION...', '\n')
+    print('Joining subclasses in bigger groups for every external input catalog...', '\n')
+    # add flags for GAIA stars
+    spec_class_df = lhf.star_marker(spec_class_df, s_n_threshold=5)
+
+    print('GAIA stat:')
+    print(spec_class_df.class_GAIA_class.value_counts().to_string(), '\n')
+
+    spec_class_df.loc[:, 'class_SDSS_class'] = spec_class_df.SDSS_spCl.str.strip()
+
+    # joining SDSS subclasses
+    # SDSS_class GALAXY with SDSS_subCl AGN is QSO
+    spec_class_df['class_SDSS_class'] = (
+        spec_class_df['class_SDSS_class']
+        .where(spec_class_df['SDSS_subCl'] != "AGN", 'QSO')
+        )
+
+    print('SDSS stat:')
+    print(spec_class_df['class_SDSS_class'].value_counts().to_string(), '\n')
+
+    # joining MILQ subclasses
+    milq_qso_types = ['QSO', 'AGN', 'AGN-NL', 'QSO-NL', 'BLAZAR', 'RADIO-SOURCE']
+    mask_extragal = spec_class_df.eval("MILQ_TYPE_spec in @milq_qso_types")
+    spec_class_df.loc[mask_extragal, 'class_MILQ_class'] = 'QSO'
+
+    mask_extragal = spec_class_df.eval("MILQ_TYPE_spec in ['GALAXY']")
+    spec_class_df.loc[mask_extragal, 'class_MILQ_class'] = 'GALAXY'
+
+    mask_extragal = spec_class_df.eval("MILQ_TYPE_spec in ['STAR', 'MOVING-OBJECT']")
+    spec_class_df.loc[mask_extragal, 'class_MILQ_class'] = 'STAR'
+
+    print('MILQ stat:')
+    print(spec_class_df['class_MILQ_class'].value_counts().to_string(), '\n')
+
+    spec_class_df['desi_extended'] = spec_class_df['desi_type'] != 'PSF'
+
+    spec_class_df.loc[:, 'class_final'] = spec_class_df.apply(
         lhf.assign_final_class, axis=1
         )
-    class_df.loc[:, 'class_source'] = class_df.apply(
+    spec_class_df.loc[:, 'class_source'] = spec_class_df.apply(
         lhf.assign_class_source, axis=1
         )
-        
-    class_df.loc[:, 'class_source_index'] = class_df.apply(
+
+    spec_class_df.loc[:, 'class_source_index'] = spec_class_df.apply(
         lhf.assign_class_source_index, axis=1
         )
 
     not_gaia_star_mask = (
-        (class_df['class_GAIA_class'] != 'GALACTIC') &
-        (class_df['class_final'] == 'GALACTIC (non-Gaia)')
+        (spec_class_df['class_GAIA_class'] != 'GALACTIC') &
+        (spec_class_df['class_final'] == 'GALACTIC (non-Gaia)')
         )
 
-    class_df['class_final'] = np.where(
-        not_gaia_star_mask, 'GALACTIC (non-Gaia)', class_df['class_final']
+    spec_class_df['class_final'] = np.where(
+        not_gaia_star_mask, 'GALACTIC (non-Gaia)', spec_class_df['class_final']
         )
 
-    class_df.loc[:, 'redshift_final'] = class_df.apply(
+    spec_class_df.loc[:, 'redshift_final'] = spec_class_df.apply(
         lhf.assign_final_redshift, axis=1
         )
-    class_df.loc[:, 'z_spec_origin'] = class_df.apply(
+    spec_class_df.loc[:, 'z_spec_origin'] = spec_class_df.apply(
         lhf.assign_redshift_source, axis=1
         )
 
-    # Order of appearance in the table (and scatterplot)
+    # order of appearance in the table (for the scatterplot)
     zorder_dict = {
         'GALAXY': 1,
         'GALACTIC': 2,
@@ -332,33 +348,33 @@ def main():
         'UNKNOWN': 5
         }
 
-    class_df['zorder'] = class_df['class_final'].replace(zorder_dict)
-    class_df = class_df.sort_values(by='zorder', ascending=False)
+    spec_class_df['zorder'] = spec_class_df['class_final'].replace(zorder_dict)
+    spec_class_df = spec_class_df.sort_values(by='zorder', ascending=False)
 
-    final_class_stat = pd.DataFrame(class_df.class_final.value_counts())
+    final_class_stat = pd.DataFrame(spec_class_df.class_final.value_counts())
     print()
     print(final_class_stat.to_string(), '\n')
 
     # count sources without classification
-    filtered_class_df = class_df.query(
+    filtered_spec_class_df = spec_class_df.query(
         '~(desi_rel_dered_mag_z.isna() & class_final=="UNKNOWN")'
         )
     print()
-    print('Всего:', len(class_df))
-    print('Без пропусков:', len(filtered_class_df))
+    print('Всего:', len(spec_class_df))
+    print('Без пропусков:', len(filtered_spec_class_df))
 
-    data_loss = len(class_df) - len(filtered_class_df)
-    data_loss_percent = 1 - len(filtered_class_df) / len(class_df)
+    data_loss = len(spec_class_df) - len(filtered_spec_class_df)
+    data_loss_percent = 1 - len(filtered_spec_class_df) / len(spec_class_df)
     print(f'Потеряно из-за пропусков: {data_loss_percent:.1%} ({data_loss})', '\n')
 
     print('FINAL CLASSIFICATION...', '\n')
-    filtered_class_df['extragal'] = filtered_class_df.apply(
+    filtered_spec_class_df['extragal'] = filtered_spec_class_df.apply(
         lhf.extragal_classifier, axis=1
         )
-    print(filtered_class_df['extragal'].value_counts().to_string(), '\n')
+    print(filtered_spec_class_df['extragal'].value_counts().to_string(), '\n')
 
     # add final classification
-    class_df['is_extragal'] = class_df.apply(lhf.extragal_classifier, axis=1)
+    spec_class_df['is_extragal'] = spec_class_df.apply(lhf.extragal_classifier, axis=1)
 
     paper_columns = [
         'srcname_fin', 'RA_fin', 'DEC_fin', 'pos_r98', 'DET_LIKE_0',
@@ -384,11 +400,16 @@ def main():
             }
 
     paper_cat_df = (
-            class_df[paper_columns]
+            spec_class_df[paper_columns]
             .rename(columns=columns_to_rename)
             .reset_index(drop=True)
             )
 
+    # create saving directory if it doesn't exist
+    save_directory = os.path.dirname(SAVEPATH)
+    Path(save_directory).mkdir(parents=True, exist_ok=True)
+
+    # save the matched and classified catalog
     paper_cat_df.to_pickle(SAVEPATH, compression='gzip')
 
     print(f'Merged and classified catalog is saved in {SAVEPATH}')
