@@ -412,7 +412,7 @@ def main():
     # save the matched and classified catalog
     paper_cat_df.to_pickle(SAVEPATH, compression='gzip')
 
-    print(f'Merged and classified catalog is saved in {SAVEPATH}')
+    print(f'Merged and classified catalog is saved: {SAVEPATH}')
 
 
 if __name__ == '__main__':
