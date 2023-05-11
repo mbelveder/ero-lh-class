@@ -1,5 +1,6 @@
 # eROSITA Lockman Hole source classification
-## Binary classification (extragalactic or not) of the eROSITA LH sources
+
+Binary classification (extragalactic or not) of the eROSITA LH sources; creation procedure of the eROSITA Lockman Hole catalog.
 
 ### Requirements
 
