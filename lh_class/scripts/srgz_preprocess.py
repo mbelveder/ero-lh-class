@@ -15,11 +15,13 @@ from astropy.coordinates import SkyCoord
 
 DATA_PATH = '/Users/mike/Repos/classification_LH/data'
 SRGZ_PATH = '/Users/mike/Repos/XLF_LH/data/lhpv_03_23_sd01_a15_g14_srgz_CatA_XnX_model4_SQG_model5_v20221207'
-SAVEPATH = 'data/output_data/srgz_xray.gz_pkl'
+SAVEPATH = 'data/output_data/srgz_nnmag.gz_pkl'
 save_directory = os.path.dirname(SAVEPATH)
 
 
 def main():
+
+    print('\n', 'Adding SRGz features to the nnmag counterparts...', '\n')
 
     class_df = pd.read_pickle(
         'data/output_data/matched_and_classified.gz_pkl',
@@ -28,6 +30,10 @@ def main():
 
     full_srgz_df = pd.read_pickle(SRGZ_PATH, compression='gzip')
     full_srgz_df.srcname_fin = full_srgz_df.srcname_fin.str.decode('utf-8')
+
+    # mutables are hard to merge, so here I make tuples form pdz arrays
+    full_srgz_df['srgz_z_pdf'] = full_srgz_df['srgz_z_pdf'].fillna('').apply(tuple)
+
     # SRGz catalog (only best counterparts)
     srgz_df = full_srgz_df.query('srg_match_flag==1')
 
@@ -65,8 +71,8 @@ def main():
         'srcname_fin', 'RA_fin', 'DEC_fin', 'ls_ra', 'ls_dec', 'g',
         'srgT_match_p0', 'srg_match_p', 'srg_match_pi', 'srg_match_warning',
         'srg_match_pstar', 'srg_match_pqso', 'srg_match_pgal', 'srg_match_SQG',
-        'srgz_z_max', 'srgz_z_maxConf', 'srgz_z_merr68', 'srgz_z_perr68',
-        'srgz_z_warning'
+        'srgz_z_max', 'srgz_z_maxConf', 'srgz_z_pdf', 'srgz_z_merr68',
+        'srgz_z_perr68', 'srgz_z_warning'
     ]
 
     cols2rename = {
@@ -91,6 +97,10 @@ def main():
     # has two version of optical counterparts (nnmag and SRGz). Mostly these
     # two counterparts is the same optical source, but not all of them.
     # See the 'nn_srgz_same' column for details.
+
+    # The SRGz counterparts has no spectral classification and need to be
+    # cross-mathched with spectral catalogs using srgz_preprocess.py
+    print('\n', 'Adding SRGz counterparts to the X-ray sources...', '\n')
     class_zph_srgz_df = (class_zph_df.merge(
         srgz_df[slim_srgz_cols].rename(columns=cols2rename),
         left_on=['RA', 'DEC'],
