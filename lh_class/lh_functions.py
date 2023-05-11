@@ -504,7 +504,7 @@ def flux_frequency_correction(magnitudes: pd.Series,
         pd.Series: flux in erg/cm²/s.
     """
 
-    flux = w_eff * zeropoint * 10 ** (-0.4 * magnitudes)
+    flux = w_eff * zeropoint * np.power(10, -0.4 * magnitudes)
     flux.name = 'flux_corrected'
 
     return flux
@@ -594,61 +594,40 @@ def reliable_magnitudes(df: pd.DataFrame,
 
     if colors:
         # Colors
-        df['rel_g_r'] = df['rel_mag_g'] - df['rel_mag_r']
-        df['rel_g_z'] = df['rel_mag_g'] - df['rel_mag_z']
-        df['rel_r_z'] = df['rel_mag_r'] - df['rel_mag_z']
+        for pupa in ["rel", "all"]:
+            df[f'{pupa}_r_z'] = df[f'{pupa}_mag_r'] - df[f'{pupa}_mag_z']
+            for lupa in ["r", "z"]:
+                df[f'{pupa}_g_{lupa}'] = df[f'{pupa}_mag_g'] - df[f'{pupa}_mag_{lupa}']
 
-        df['all_g_r'] = df['all_mag_g'] - df['all_mag_r']
-        df['all_g_z'] = df['all_mag_g'] - df['all_mag_z']
-        df['all_r_z'] = df['all_mag_r'] - df['all_mag_z']
+        for pupa in ["", "rel_"]:
+            df[f'{pupa}dered_g_r'] = df[f'{prefix if pupa=="" else pupa}dered_mag_g'] - df[f'{prefix if pupa=="" else pupa}dered_mag_r']
+            df[f'{pupa}dered_g_z'] = df[f'{prefix if pupa=="" else pupa}dered_mag_g'] - df[f'{prefix if pupa=="" else pupa}dered_mag_z']
+            df[f'{pupa}dered_r_z'] = df[f'{prefix if pupa=="" else pupa}dered_mag_r'] - df[f'{prefix if pupa=="" else pupa}dered_mag_z']
 
-        df['dered_g_r'] = df[prefix + 'dered_mag_g'] - df[prefix + 'dered_mag_r']
-        df['dered_g_z'] = df[prefix + 'dered_mag_g'] - df[prefix + 'dered_mag_z']
-        df['dered_r_z'] = df[prefix + 'dered_mag_r'] - df[prefix + 'dered_mag_z']
+        for pupa in ["g", "r", "z"]:
+            for lupa in ["1", "2"]:
+                df[f'rel_{pupa}_w{lupa}'] =\
+                    df[f'rel_mag_{pupa}'] - df[f'rel_mag_w{lupa}']
 
-        df['rel_dered_g_r'] = df['rel_dered_mag_g'] - df['rel_dered_mag_r']
-        df['rel_dered_g_z'] = df['rel_dered_mag_g'] - df['rel_dered_mag_z']
-        df['rel_dered_r_z'] = df['rel_dered_mag_r'] - df['rel_dered_mag_z']
-
-        df['rel_g_w1'] = df['rel_mag_g'] - df['rel_mag_w1']
-        df['rel_r_w1'] = df['rel_mag_r'] - df['rel_mag_w1']
-        df['rel_z_w1'] = df['rel_mag_z'] - df['rel_mag_w1']
-        
-        df['rel_g_w2'] = df['rel_mag_g'] - df['rel_mag_w2']
-        df['rel_r_w2'] = df['rel_mag_r'] - df['rel_mag_w2']
-        df['rel_z_w2'] = df['rel_mag_z'] - df['rel_mag_w2']
-
-        df['rel_w1_w2'] = df['rel_mag_w1'] - df['rel_mag_w2']
-        df['rel_w2_w3'] = df['rel_mag_w2'] - df['rel_mag_w3']
-
-        df['vega_w1_w2'] = df['vega_mag_w1'] - df['vega_mag_w2']
-        df['vega_w2_w3'] = df['vega_mag_w2'] - df['vega_mag_w3']
-
-        df['rel_w1_w3'] = df['rel_mag_w1'] - df['rel_mag_w3']
-        df['rel_w1_w4'] = df['rel_mag_w1'] - df['rel_mag_w4']
-
-        df['vega_w1_w3'] = df['vega_mag_w1'] - df['vega_mag_w3']
-        df['vega_w1_w4'] = df['vega_mag_w1'] - df['vega_mag_w4']
+        for pupa in ["rel", "vega"]:
+            df[f'{pupa}_w1_w2'] = df[f'{pupa}_mag_w1'] - df[f'{pupa}_mag_w2']
+            df[f'{pupa}_w1_w3'] = df[f'{pupa}_mag_w1'] - df[f'{pupa}_mag_w3']
+            df[f'{pupa}_w1_w4'] = df[f'{pupa}_mag_w1'] - df[f'{pupa}_mag_w4']
+            df[f'{pupa}_w2_w3'] = df[f'{pupa}_mag_w2'] - df[f'{pupa}_mag_w3']
 
     if xray:
         # X-ray to optical flux
-        df['lg(Fx/Fo_g)'] = np.log10(df['flux_05-20'] / df[prefix + 'flux_g'])
-        df['lg(Fx/Fo_r)'] = np.log10(df['flux_05-20'] / df[prefix + 'flux_r'])
-        df['lg(Fx/Fo_z)'] = np.log10(df['flux_05-20'] / df[prefix + 'flux_z'])
+        for __ in ["g", "r", "z"]:
+            df[f'lg(Fx/Fo_{__})'] = \
+                np.log10(df['flux_05-20'] / df[f"{prefix}flux_{__}"])
 
         '''
         TODO: update with datalab data when possible
         '''
-
-        dered_flux_z = 10 ** (9 - df['rel_dered_mag_z'] / 2.5)
-        df['rel_dered_lg(Fx/Fo_z)'] = np.log10(df['flux_05-20'] / dered_flux_z)
+        for pupa in ["z", "g", "r"]:
+            df[f'rel_dered_lg(Fx/Fo_{pupa})'] = \
+                np.log10(df['flux_05-20'] / np.power(10, 9 - df[f'rel_dered_mag_{pupa}'] / 2.5))
         df['rel_dered_lg(Fx/Fo_z_corr)'] = np.log10(df['flux_05-20'] / df['rel_desi_flux_corr_z'])
-
-        dered_flux_g = 10 ** (9 - df['rel_dered_mag_g'] / 2.5)
-        df['rel_dered_lg(Fx/Fo_g)'] = np.log10(df['flux_05-20'] / dered_flux_g)
-
-        dered_flux_r = 10 ** (9 - df['rel_dered_mag_r'] / 2.5)
-        df['rel_dered_lg(Fx/Fo_r)'] = np.log10(df['flux_05-20'] / dered_flux_r)
 
     return df
 
@@ -657,7 +636,7 @@ def ab_mag2Jy(mag):
     '''
     Converts AB magnitude to Jy.
     '''
-    return 10 ** (3.56 - 0.4 * mag)
+    return np.power(10, 3.56 - 0.4 * mag)
 
 
 def leave_closest_sep(df: pd.DataFrame, sep_name: str,
