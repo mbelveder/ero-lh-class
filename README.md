@@ -10,7 +10,7 @@ Python 3.9 or higher
 
 `pip3 install git+https://github.com/mbelveder/lh.git`
 
-### Data
+### Input data
 
 [Download](https://disk.yandex.ru/d/F_Q55KtS36gV8A)
 
