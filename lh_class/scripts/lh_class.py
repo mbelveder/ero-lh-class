@@ -60,6 +60,7 @@ def spectral_parsing():
     ero_desi_nnmag_df.reset_index(drop=True, inplace=True)
     print('DESI nnmag matches:', len(ero_desi_nnmag_df))
 
+    # TODO: update fluxes in accordance with the future agreements
     ero_desi_nnmag_df['flux_05-20_LH'] = ero_desi_nnmag_df['ML_FLUX_0'] * ECF_MG_241122
     ero_desi_nnmag_df['flux_05-20_LH_ERR'] = ero_desi_nnmag_df['ML_FLUX_ERR_0'] * ECF_MG_241122
     erosita_columns = list(ero_desi_nnmag_df.columns.values)
@@ -192,7 +193,7 @@ def spectral_parsing():
         simbad_df['z_rel_mask'], simbad_df['Z_VALUE'], np.nan
         )
 
-    # leave only the closest neighbours?
+    # leave only the closest neighbours
     simbad_closest_df = simbad_df.loc[
         simbad_df.groupby('srcname_fin').DISTANCE_RESULT.idxmin()
         ]
@@ -257,12 +258,13 @@ def spectral_parsing():
 
     all_matched_df.fillna(np.nan, inplace=True)
 
-    spec_class_df = all_matched_df.merge(
+    # add closest Simbad counterparts
+    all_matched_df = all_matched_df.merge(
         simbad_closest_df,
         on='srcname_fin', how='left'
         )
 
-    return spec_class_df
+    return all_matched_df
 
 
 def main():

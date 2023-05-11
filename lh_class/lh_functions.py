@@ -1076,7 +1076,7 @@ def metaplot(df: pd.DataFrame,
 
 
 def logNlogS(fluxes):
-    
+
     flux_thresholds = np.logspace(-15, -12, 500)
     sln = np.array([len(fluxes[fluxes > x]) for x in flux_thresholds])
 
@@ -1163,11 +1163,11 @@ def cross_match_data_frames(df1: pd.DataFrame, df2: pd.DataFrame,
     df1 = df1.loc[idx1]
     df2 = df2.loc[idx2]
 
-    df1.reset_index(inplace = True, drop = True)
-    df2.reset_index(inplace = True, drop = True)
+    df1.reset_index(inplace=True, drop=True)
+    df2.reset_index(inplace=True, drop=True)
 
-    df2.columns  = [df_prefix + x for x in df2.columns]
-    df2.rename(columns={df_prefix+'index_secondary':'index_secondary'}, inplace=True)
+    df2.columns = [df_prefix + x for x in df2.columns]
+    df2.rename(columns={df_prefix+'index_secondary': 'index_secondary'}, inplace=True)
 
     df_matched = pd.concat([df1, df2, ang_sep], axis=1)
 
