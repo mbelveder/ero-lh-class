@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 # Cross-match of the optical nnmag counterparts obtained in lh_class.py with
-# the SRGz catalog to get SRGz features
+# the SRGz catalog to get SRGz features. Merging nnmag and SRGz catalog to
+# get two versions of optical counterparts (nnmag and SRGz) for the every
+# X-ray source.
 
 import os
 import pandas as pd
