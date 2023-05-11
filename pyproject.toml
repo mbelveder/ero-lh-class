@@ -24,3 +24,4 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 lh-class = "lh_class.scripts.lh_class:main"
 srgz-prep = "lh_class.scripts.srgz_preprocess:main"
+srgz-spec = "lh_class.scripts.lh_class:srgz_spec"
