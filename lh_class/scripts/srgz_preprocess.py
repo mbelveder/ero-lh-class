@@ -12,16 +12,15 @@ pd.options.mode.chained_assignment = None
 from pathlib import Path
 from astropy.coordinates import SkyCoord
 
-
-DATA_PATH = '/Users/mike/Repos/classification_LH/data'
-SRGZ_PATH = '/Users/mike/Repos/XLF_LH/data/lhpv_03_23_sd01_a15_g14_srgz_CatA_XnX_model4_SQG_model5_v20221207'
-SAVEPATH = 'data/output_data/srgz_nnmag.gz_pkl'
-save_directory = os.path.dirname(SAVEPATH)
+SRGZ_PATH = 'data/input_data/lhpv_03_23_sd01_a15_g14_srgz_CatA_XnX_model4_SQG_model5_v20221207'
+SAVE_PATH = 'data/output_data/srgz_nnmag.gz_pkl'
+save_directory = os.path.dirname(SAVE_PATH)
 
 
 def main():
 
-    print('\n', 'Adding SRGz features to the nnmag counterparts...', '\n')
+    print()
+    print('Adding SRGz features to the nnmag counterparts...', '\n')
 
     class_df = pd.read_pickle(
         'data/output_data/matched_and_classified.gz_pkl',
@@ -105,7 +104,7 @@ def main():
         srgz_df[slim_srgz_cols].rename(columns=cols2rename),
         left_on=['RA', 'DEC'],
         right_on=['srgz_RA_fin', 'srgz_DEC_fin'],
-        suffixes=['', 'srgz_'], how='left')
+        suffixes=['', 'srgz_'], how='left')  # type: ignore
         ).drop(columns=columns2drop)
 
     # get rid of minus sign in srgz_z_merr68
@@ -124,7 +123,7 @@ def main():
         )
 
     sep_nn_srgz = nn_coords.separation(srgz_coords).arcsec
-    class_zph_srgz_df['sep_nn_srgz'] = sep_nn_srgz
+    # class_zph_srgz_df['sep_nn_srgz'] = sep_nn_srgz
 
     nn_srgz_same = pd.Series(sep_nn_srgz) < 1
     class_zph_srgz_df.insert(31, 'nn_srgz_same', nn_srgz_same)
@@ -136,8 +135,8 @@ def main():
 
     Path(save_directory).mkdir(parents=True, exist_ok=True)
 
-    class_zph_srgz_df.to_pickle(SAVEPATH, compression='gzip')
-    print(f'Preprocessed SRGz catalog is saved: {SAVEPATH}')
+    class_zph_srgz_df.to_pickle(SAVE_PATH, compression='gzip')
+    print(f'Preprocessed SRGz catalog is saved: {SAVE_PATH}')
 
 
 if __name__ == '__main__':

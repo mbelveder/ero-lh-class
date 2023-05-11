@@ -9,18 +9,18 @@ from functools import reduce
 from pathlib import Path
 pd.options.mode.chained_assignment = None
 
-DATA_BASE_PATH = '/Users/mike/Repos/classification_LH/data'
+DATA_BASE_PATH = 'data/input_data'
 # DESI soruces in LH
 # https://www.notion.so/LH-data-95f7ad4a14cc4b2d8ef4e3a3237bd29b?pvs=4#a0fa7d64a06a42f4b8ed8a03d25cb736
-DESI_PATH = f'{DATA_BASE_PATH}/desi/desi_mask_lh.gz_pkl'
+DESI_PATH = f'{DATA_BASE_PATH}/desi_mask_lh.gz_pkl'
 
 # GAIA sources in LH
 # https://www.notion.so/LH-data-95f7ad4a14cc4b2d8ef4e3a3237bd29b?pvs=4#781138565e554d4e935a1ce5651db3ca
-GAIA_PATH = f'{DATA_BASE_PATH}/gaia/gaia_dr3_astroph_4-result.csv'
+GAIA_PATH = f'{DATA_BASE_PATH}/gaia_dr3_astroph_4-result.csv'
 
 # SDSS sources in LH
 # https://www.notion.so/LH-data-95f7ad4a14cc4b2d8ef4e3a3237bd29b?pvs=4#2f3fedf2068746949dc2cddbdb201a90
-SDSS_PATH = f'{DATA_BASE_PATH}/SDSS/sdss_tap.csv'
+SDSS_PATH = f'{DATA_BASE_PATH}/sdss_tap.csv'
 
 # DESI positional errors, downloaded separately to merge with SB catalogue
 # The reason they are here is to avoid re-running the SB piplene
@@ -30,17 +30,16 @@ SDSS_PATH = f'{DATA_BASE_PATH}/SDSS/sdss_tap.csv'
 # https://www.notion.so/LH-data-95f7ad4a14cc4b2d8ef4e3a3237bd29b?pvs=4#e61e989c1773400aae34c6f984012a2e
 # TODO: check if the cross-match file is up to date (why some date is in the name?)
 NNMAG_CAT_FILENAME = 'ERO_lhpv_03_23_sd01_a15_g14_desi_nway_match_21_10_22.gz_pkl'
-DESI_MATCH_PATH = f'{DATA_BASE_PATH}/SB/{NNMAG_CAT_FILENAME}'
-MILQ_PATH = f'{DATA_BASE_PATH}/SB/milliquas_LH.csv'
+DESI_MATCH_PATH = f'{DATA_BASE_PATH}/{NNMAG_CAT_FILENAME}'
+MILQ_PATH = f'{DATA_BASE_PATH}/milliquas_LH.csv'
 SIMBAD_PATH = f'{DATA_BASE_PATH}/simbad_df.pkl'
-
 
 # path to save the table of sources matched with external catalogs
 # and classified as extragalactic/not extragalactic
-SAVE_DICT = 'data/output_data'
+SAVE_DIR = 'data/output_data'
 
 # path to the file produced by the srgz_preprocess.py
-SRGZ_NNMAG_PATH = f'{SAVE_DICT}/srgz_nnmag.gz_pkl'
+SRGZ_NNMAG_PATH = f'{SAVE_DIR}/srgz_nnmag.gz_pkl'
 
 # ECF given by MG in 2022
 ECF_MG_241122 = 0.7228
@@ -393,7 +392,7 @@ def spectral_parsing(mode='nnmag'):
 
     elif mode == 'srgz':
 
-        SAVE_PATH = f'{SAVE_DICT}/srgz_nnmag_spec.gz_pkl'
+        SAVE_PATH = f'{SAVE_DIR}/srgz_nnmag_spec.gz_pkl'
 
         # TODO: make renaming process less messy
         columns2rename = {
@@ -406,7 +405,7 @@ def spectral_parsing(mode='nnmag'):
 
         useful_columns = [
             'NAME', 'class_final', 'redshift_final',
-            'class_source', 'class_source_index'
+            'class_source', 'class_source_index',
         ]
 
         (
@@ -414,16 +413,13 @@ def spectral_parsing(mode='nnmag'):
             .add_prefix('srgz_spec_')
             .rename(columns=columns2rename)
             .reset_index(drop=True)
-            .to_pickle(SAVE_PATH)
+            .to_pickle(SAVE_PATH, compression='gzip')
         )
 
         print(f'Catalog of SRGz sources with spectral classes is saved: {SAVE_PATH}', '\n')
 
 
 def main():
-
-    print()
-    print('Welcome to the LH classification script!', '\n')
 
     spec_class_df = spectral_parsing(mode='nnmag')
 
@@ -432,12 +428,12 @@ def main():
         '~(desi_rel_dered_mag_z.isna() & class_final=="UNKNOWN")'
         )
     print()
-    print('Всего:', len(spec_class_df))
-    print('Без пропусков:', len(filtered_spec_class_df))
+    print('Total:', len(spec_class_df))
+    print('Without missed values:', len(filtered_spec_class_df))
 
     data_loss = len(spec_class_df) - len(filtered_spec_class_df)
     data_loss_percent = 1 - len(filtered_spec_class_df) / len(spec_class_df)
-    print(f'Потеряно из-за пропусков: {data_loss_percent:.1%} ({data_loss})', '\n')
+    print(f'Data loss due to missed values: {data_loss_percent:.1%} ({data_loss})', '\n')
 
     print('FINAL CLASSIFICATION...', '\n')
     filtered_spec_class_df['extragal'] = filtered_spec_class_df.apply(
@@ -478,10 +474,10 @@ def main():
         )
 
     # create saving directory if it doesn't exist
-    Path(SAVE_DICT).mkdir(parents=True, exist_ok=True)
+    Path(SAVE_DIR).mkdir(parents=True, exist_ok=True)
 
     # save the matched and classified catalog
-    SAVE_PATH = f'{SAVE_DICT}/matched_and_classified.gz_pkl'
+    SAVE_PATH = f'{SAVE_DIR}/matched_and_classified.gz_pkl'
     paper_cat_df.to_pickle(SAVE_PATH, compression='gzip')
 
     print(f'Merged and classified catalog is saved: {SAVE_PATH}')
@@ -489,6 +485,92 @@ def main():
 
 def srgz_spec():
     spectral_parsing(mode='srgz')
+
+
+def postprocess():
+
+    RESUL_DIR = 'data/result_data'
+    Path(RESUL_DIR).mkdir(parents=True, exist_ok=True)
+
+    print('Reading the input catalogs...', '\n')
+    class_zph_srgz_df = pd.read_pickle(
+        f'{SAVE_DIR}/srgz_nnmag.gz_pkl',
+        compression='gzip'
+        )
+
+    srgz_spec_df = pd.read_pickle(
+        f'{SAVE_DIR}/srgz_nnmag_spec.gz_pkl',
+        compression='gzip'
+        )
+
+    print('Merging srgz_nnmag with srgz_nnmag_spec...', '\n')
+    class_zph_srgz_spec_df = class_zph_srgz_df.merge(
+        srgz_spec_df,
+        right_on='srcname',
+        how='left',
+        left_on='NAME'
+        ).drop(columns=['srcname'])
+
+    print('Columns renaming and reduction...', '\n')
+    for column in class_zph_srgz_spec_df.columns:
+
+        colname_elements = column.split('_')
+
+        if '_z_' in column:
+            new_root = column.replace('_z_', '_zph_')
+            # print(column, '->', new_root, '\n')
+            class_zph_srgz_spec_df.rename(columns={column: new_root}, inplace=True)
+
+        elif colname_elements[0] == 'desi':
+            class_zph_srgz_spec_df.rename(columns={column: f'nn_{column}'}, inplace=True)
+
+    final_rename_dict = {
+        'src_class': 'nn_spec_class',
+        'redshift': 'nn_spec_z',
+        'class_origin': 'nn_spec_class_origin',
+        'class_origin_index': 'nn_spec_class_id',
+        'is_extragal': 'nn_is_extragal',
+        'srgz_spec_class_origin_id': 'srgz_spec_class_id',
+        'srgz_zph_max': 'srgz_zph',
+        'srgz_zph_maxConf': 'srgz_zconf',
+        'nn_desi_p_any': 'nn_p_any',
+        'nn_desi_p_i': 'nn_p_i',
+        'nn_srgz_zph_max': 'nn_srgz_zph',
+        'nn_srgz_zph_maxConf': 'nn_srgz_zconf',
+        'nn_srgz_zph_merr68': 'nn_srgz_zph_nerr68',
+        'srgz_zph_merr68': 'srgz_zph_nerr68',
+        'z_spec_origin': 'nn_spec_z_origin',
+    }
+
+    class_zph_srgz_spec_df.rename(columns=final_rename_dict, inplace=True)
+
+    # A new version of SRGz table contains a bunch of `object` dtypes columns.
+    # I exclude them to replace `inf` with `nan` in other columns.
+    not_obj_type_list = list(class_zph_srgz_spec_df.select_dtypes(exclude=['object']).columns)
+
+    # get rid of infinities in not_obj_type_list
+    class_zph_srgz_spec_df[not_obj_type_list] = (
+        class_zph_srgz_spec_df[not_obj_type_list]
+        .replace([np.inf, -np.inf], np.nan)
+        )
+
+    # drop nn_spec_z if origin of class and redshift are different
+    mask = (
+        ~class_zph_srgz_spec_df['nn_spec_z'].isna() &
+        (class_zph_srgz_spec_df['nn_spec_class_origin'] !=
+         class_zph_srgz_spec_df['nn_spec_z_origin'])
+            )
+
+    class_zph_srgz_spec_df['nn_spec_z'][mask] = np.nan
+
+    class_zph_srgz_spec_df.drop(columns=['nn_spec_z_origin'], inplace=True)
+
+    class_zph_srgz_spec_df.to_pickle(
+        f'{RESUL_DIR}/lh_nnmag_srgz.gz_pkl',
+        compression='gzip'
+        )
+
+    print(f'Final catalog is saved: {RESUL_DIR}/lh_nnmag_srgz.gz_pkl')
 
 
 if __name__ == '__main__':
