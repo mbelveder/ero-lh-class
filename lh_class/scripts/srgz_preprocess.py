@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# This script provides a preprocessing procedure that adds useful x-ray
-# features to the SRGz catalog (with p(z))
+# Cross-match of the optical nnmag counterparts obtained in lh_class.py with
+# the SRGz catalog to get SRGz features
 
 import os
 import pandas as pd
@@ -14,6 +14,7 @@ from astropy.coordinates import SkyCoord
 DATA_PATH = '/Users/mike/Repos/classification_LH/data'
 SRGZ_PATH = '/Users/mike/Repos/XLF_LH/data/lhpv_03_23_sd01_a15_g14_srgz_CatA_XnX_model4_SQG_model5_v20221207'
 SAVEPATH = 'data/output_data/srgz_xray.gz_pkl'
+save_directory = os.path.dirname(SAVEPATH)
 
 
 def main():
@@ -41,9 +42,12 @@ def main():
         columns={'srg_match_SQG': 'srgz_match_SQG'}
         )
 
+    # Cross-match between nnmag optical counterparts and SRGz optical
+    # counter. FULL SRGz catalog is used to get SRGz features for
+    # all the nnmag optical cources.
     class_zph_df = lhf.cross_match_data_frames(
         class_df,
-        srgz_slim_df, 
+        srgz_slim_df,
         colname_ra1='desi_ra',
         colname_dec1='desi_dec',
         colname_ra2='ls_ra',
@@ -52,6 +56,8 @@ def main():
         df_prefix='nn',
         closest=True
     )
+
+    # class_zph_df.to_pickle(f'{save_directory}/class_zph.pkl')
 
     slim_srgz_cols = [
         'srcname_fin', 'RA_fin', 'DEC_fin', 'ls_ra', 'ls_dec', 'g',
@@ -77,6 +83,12 @@ def main():
         'nn_n_near', 'nn_n_matches'
     ]
 
+    # Merge the updated nnmag catalog (containts SRGz features for every
+    # nnmag counterpart) with the SRGz catalog using X-ray coordinates.
+    # Result: evry nnmag counterpart has SRGz features AND every X-ray source
+    # has two version of optical counterparts (nnmag and SRGz). Mostly these
+    # two counterparts is the same optical source, but not all of them.
+    # See the 'nn_srgz_same' column for details.
     class_zph_srgz_df = (class_zph_df.merge(
         srgz_df[slim_srgz_cols].rename(columns=cols2rename),
         left_on=['RA', 'DEC'],
@@ -90,7 +102,8 @@ def main():
     # makrk close nnmag and srgz counterparts as the same
     nn_coords = SkyCoord(
         ra=class_zph_srgz_df['desi_ra'],
-        dec=class_zph_srgz_df['desi_dec'], unit='deg'
+        dec=class_zph_srgz_df['desi_dec'],
+        unit='deg'
         )
     srgz_coords = SkyCoord(
         ra=class_zph_srgz_df['srgz_ls_ra'],
@@ -98,14 +111,17 @@ def main():
         unit='deg'
         )
 
-    nn_srgz_same = pd.Series(nn_coords.separation(srgz_coords).arcsec) < 1
+    sep_nn_srgz = nn_coords.separation(srgz_coords).arcsec
+    class_zph_srgz_df['sep_nn_srgz'] = sep_nn_srgz
+
+    nn_srgz_same = pd.Series(sep_nn_srgz) < 1
     class_zph_srgz_df.insert(31, 'nn_srgz_same', nn_srgz_same)
 
-    # get rid of minus sign in srgz_z_merr68
+    # get rid of minus sign in nn_srgz_z_merr68
     class_zph_srgz_df['nn_srgz_z_merr68'] = -class_zph_srgz_df['nn_srgz_z_merr68']
 
     # create saving directory if it doesn't exist
-    save_directory = os.path.dirname(SAVEPATH)
+
     Path(save_directory).mkdir(parents=True, exist_ok=True)
 
     class_zph_srgz_df.to_pickle(SAVEPATH, compression='gzip')
