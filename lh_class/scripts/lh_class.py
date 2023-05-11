@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import re
-import os
 import pandas as pd
 import numpy as np
 from lh_class import lh_functions as lhf
@@ -35,39 +34,73 @@ DESI_MATCH_PATH = f'{DATA_BASE_PATH}/SB/{NNMAG_CAT_FILENAME}'
 MILQ_PATH = f'{DATA_BASE_PATH}/SB/milliquas_LH.csv'
 SIMBAD_PATH = f'{DATA_BASE_PATH}/simbad_df.pkl'
 
+
 # path to save the table of sources matched with external catalogs
 # and classified as extragalactic/not extragalactic
-SAVEPATH = 'data/output_data/matched_and_classified.gz_pkl'
+SAVE_DICT = 'data/output_data'
+
+# path to the file produced by the srgz_preprocess.py
+SRGZ_NNMAG_PATH = f'{SAVE_DICT}/srgz_nnmag.gz_pkl'
 
 # ECF given by MG in 2022
 ECF_MG_241122 = 0.7228
 
 
-def spectral_parsing():
+def spectral_parsing(mode='nnmag'):
 
     # cross-match with spectral catalogs and databases
 
-    print('Reading the input catalogs...')
+    print('\n', 'Reading the input catalogs...', '\n')
     desi_df = pd.read_pickle(DESI_PATH, compression='gzip')
     print('DESI sources in LH:', len(desi_df))
 
     gaia_df = pd.read_csv(GAIA_PATH)
     print('GAIA sources in LH:', len(gaia_df))
 
-    # read nnmag match results
-    ero_desi_nnmag_df = pd.read_pickle(DESI_MATCH_PATH, compression='gzip')
-    # TODO: up-to-date nnmag catalog needs no index reset
-    ero_desi_nnmag_df.reset_index(drop=True, inplace=True)
-    print('DESI nnmag matches:', len(ero_desi_nnmag_df))
-
-    # TODO: update fluxes in accordance with the future agreements
-    ero_desi_nnmag_df['flux_05-20_LH'] = ero_desi_nnmag_df['ML_FLUX_0'] * ECF_MG_241122
-    ero_desi_nnmag_df['flux_05-20_LH_ERR'] = ero_desi_nnmag_df['ML_FLUX_ERR_0'] * ECF_MG_241122
-    erosita_columns = list(ero_desi_nnmag_df.columns.values)
-
     # TODO: convert Simbad parsing to a script
     simbad_df = pd.read_pickle(SIMBAD_PATH)
     print('SIMBAD sources in LH:', len(simbad_df), '\n')
+
+    if mode == 'nnmag':
+
+        # coordinates of sources which needs spectral classification
+        DESI_RA_NAME = 'desi_ra'
+        DESI_DEC_NAME = 'desi_dec'
+
+        XRAY_RA_NAME = 'RA_fin'
+        XRAY_DEC_NAME = 'DEC_fin'
+
+        # read nnmag match results
+        catalog_to_classify = pd.read_pickle(DESI_MATCH_PATH, compression='gzip')
+        # TODO: up-to-date nnmag catalog needs no index reset
+        catalog_to_classify.reset_index(drop=True, inplace=True)
+        print('DESI nnmag matches:', len(catalog_to_classify))
+
+        # TODO: update fluxes in accordance with the future agreements
+        catalog_to_classify['flux_05-20_LH'] = catalog_to_classify['ML_FLUX_0'] * ECF_MG_241122
+        catalog_to_classify['flux_05-20_LH_ERR'] = catalog_to_classify['ML_FLUX_ERR_0'] * ECF_MG_241122
+
+    elif mode == 'srgz':
+
+        # coordinates of sources which needs spectral classification
+        DESI_RA_NAME = 'srgz_ls_ra'
+        DESI_DEC_NAME = 'srgz_ls_dec'
+
+        XRAY_RA_NAME = 'RA'
+        XRAY_DEC_NAME = 'DEC'
+
+        # read srgz_preprocess.py result
+        catalog_to_classify = pd.read_pickle(SRGZ_NNMAG_PATH, compression='gzip')
+
+        # drop several sources with problem coordinates
+        catalog_to_classify = catalog_to_classify.dropna(
+            subset=[DESI_RA_NAME, DESI_DEC_NAME]
+            )
+
+    else:
+        raise ValueError('`mode` value is incorrect. Try using "nnmag" or "srgz".')
+
+    merge_on_columns = list(catalog_to_classify.columns.values)
 
     print('* ' * 15)
     print('GAIA PREROCESSING...', '\n')
@@ -82,17 +115,19 @@ def spectral_parsing():
     print('GAIA CROSS-MATCH WITH ERO NNMAG...', '\n')
 
     desi_gaia_df = lhf.cross_match_data_frames(
-        df1=ero_desi_nnmag_df,
+        df1=catalog_to_classify,
         df2=gaia_df,
-        colname_ra1='desi_ra',
-        colname_dec1='desi_dec',
+        colname_ra1=DESI_RA_NAME,
+        colname_dec1=DESI_DEC_NAME,
         colname_ra2='ra',
         colname_dec2='dec',
         match_radius=.5,
         df_prefix='GAIA',
         closest=True,
         solo_near=True,
-        ero_sep=True
+        ero_sep=True,
+        xray_ra=XRAY_RA_NAME,
+        xray_dec=XRAY_DEC_NAME
     )
 
     print('* ' * 15)
@@ -110,10 +145,10 @@ def spectral_parsing():
     print('SDSS CROSS-MATCH WITH ERO NNMAG...', '\n')
 
     desi_sdss_df = lhf.cross_match_data_frames(
-        df1=ero_desi_nnmag_df,
+        df1=catalog_to_classify,
         df2=sdss_spectral,
-        colname_ra1='desi_ra',
-        colname_dec1='desi_dec',
+        colname_ra1=DESI_RA_NAME,
+        colname_dec1=DESI_DEC_NAME,
         colname_ra2='RA_ICRS',
         colname_dec2='DE_ICRS',
         match_radius=1,
@@ -142,10 +177,10 @@ def spectral_parsing():
 
     print('MILQ CROSS-MATCH WITH ERO NNMAG...', '\n')
     desi_milq_df = lhf.cross_match_data_frames(
-        df1=ero_desi_nnmag_df,
+        df1=catalog_to_classify,
         df2=milq_df,
-        colname_ra1='desi_ra',
-        colname_dec1='desi_dec',
+        colname_ra1=DESI_RA_NAME,
+        colname_dec1=DESI_DEC_NAME,
         colname_ra2='RA',
         colname_dec2='DEC',
         match_radius=1,
@@ -249,11 +284,11 @@ def spectral_parsing():
     print('JOINING ALL MATCHES...', '\n')
     # merge desi_gaia with desi_sdss with desi to create a new desi_gaia_sdss catalogue
     # https://stackoverflow.com/questions/44327999/python-pandas-merge-multiple-dataframes
-    data_frames = [ero_desi_nnmag_df, desi_gaia_df, desi_sdss_df, desi_milq_df]
+    data_frames = [catalog_to_classify, desi_gaia_df, desi_sdss_df, desi_milq_df]
 
     all_matched_df = reduce(
         lambda left, right: pd.merge(
-            left, right, on=erosita_columns, how='outer'), data_frames
+            left, right, on=merge_on_columns, how='outer'), data_frames
             ).fillna(np.nan)
 
     all_matched_df.fillna(np.nan, inplace=True)
@@ -261,10 +296,41 @@ def spectral_parsing():
     # add closest Simbad counterparts
     all_matched_df = all_matched_df.merge(
         simbad_closest_df,
-        on='srcname_fin', how='left'
+        left_on='NAME',
+        right_on='srcname_fin',
+        how='left'
         )
 
-    return all_matched_df
+    if mode == 'nnmag':
+        return all_matched_df
+
+    elif mode == 'srgz':
+
+        SAVE_PATH = f'{SAVE_DICT}/srgz_nnmag_spec.gz_pkl'
+
+        # TODO: make renaming process less messy
+        columns2rename = {
+            'srgz_spec_NAME': 'srcname',
+            'srgz_spec_class_source': 'srgz_spec_class_origin',
+            'srgz_spec_class_source_index': 'srgz_spec_class_origin_id',
+            'srgz_spec_class_final': 'srgz_spec_class',
+            'srgz_spec_redshift_final': 'srgz_spec_z'
+        }
+
+        useful_columns = [
+            'NAME', 'class_final', 'redshift_final',
+            'class_source', 'class_source_index'
+        ]
+
+        print(list(all_matched_df))
+
+        (
+            all_matched_df[useful_columns]
+            .add_prefix('srgz_spec_')
+            .rename(columns=columns2rename)
+            .reset_index(drop=True)
+            .to_pickle(SAVE_PATH)
+        )
 
 
 def main():
@@ -390,31 +456,35 @@ def main():
     ]
 
     columns_to_rename = {
-            'srcname_fin': 'NAME', 'RA_fin': 'RA', 'DEC_fin': 'DEC',
-            'pos_r98': 'POS_R98', 'DET_LIKE_0': 'DET_LIKE', 'ML_CTS_0': 'CTS',
-            'ML_CTS_ERR_0': 'CTS_ERR', 'ML_RATE_0': 'SRC_RATE',
-            'ML_RATE_ERR_0': 'SRC_RATE_ERR', 'ML_BKG_0': 'BKG_RATE',
-            'ML_EXP_1': 'EXP', 'DIST_NN': 'DIST_CN', 'flux_05-20_LH': 'FLUX_05-20',
-            'flux_05-20_LH_ERR': 'FLUX_05-20_ERR', 'class_source': 'class_origin',
-            'class_source_index': 'class_origin_index', 'class_final': 'src_class',
-            'redshift_final': 'redshift', 'nway_prob_has_match': 'desi_p_any',
-            'nway_prob_this_match': 'desi_p_i'
-            }
+        'srcname_fin': 'NAME', 'RA_fin': 'RA', 'DEC_fin': 'DEC',
+        'pos_r98': 'POS_R98', 'DET_LIKE_0': 'DET_LIKE', 'ML_CTS_0': 'CTS',
+        'ML_CTS_ERR_0': 'CTS_ERR', 'ML_RATE_0': 'SRC_RATE',
+        'ML_RATE_ERR_0': 'SRC_RATE_ERR', 'ML_BKG_0': 'BKG_RATE',
+        'ML_EXP_1': 'EXP', 'DIST_NN': 'DIST_CN', 'flux_05-20_LH': 'FLUX_05-20',
+        'flux_05-20_LH_ERR': 'FLUX_05-20_ERR', 'class_source': 'class_origin',
+        'class_source_index': 'class_origin_index', 'class_final': 'src_class',
+        'redshift_final': 'redshift', 'nway_prob_has_match': 'desi_p_any',
+        'nway_prob_this_match': 'desi_p_i'
+        }
 
     paper_cat_df = (
-            spec_class_df[paper_columns]
-            .rename(columns=columns_to_rename)
-            .reset_index(drop=True)
-            )
+        spec_class_df[paper_columns]
+        .rename(columns=columns_to_rename)
+        .reset_index(drop=True)
+        )
 
     # create saving directory if it doesn't exist
-    save_directory = os.path.dirname(SAVEPATH)
-    Path(save_directory).mkdir(parents=True, exist_ok=True)
+    Path(SAVE_DICT).mkdir(parents=True, exist_ok=True)
 
     # save the matched and classified catalog
-    paper_cat_df.to_pickle(SAVEPATH, compression='gzip')
+    SAVE_PATH = f'{SAVE_DICT}/matched_and_classified.gz_pkl'
+    paper_cat_df.to_pickle(SAVE_PATH, compression='gzip')
 
-    print(f'Merged and classified catalog is saved: {SAVEPATH}')
+    print(f'Merged and classified catalog is saved: {SAVE_PATH}')
+
+
+def srgz_spec():
+    spectral_parsing(mode='srgz')
 
 
 if __name__ == '__main__':
