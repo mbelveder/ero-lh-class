@@ -50,7 +50,7 @@ def spectral_parsing(mode='nnmag'):
 
     # cross-match with spectral catalogs and databases
 
-    print('\n', 'Reading the input catalogs...', '\n')
+    print('Reading the input catalogs...', '\n')
     desi_df = pd.read_pickle(DESI_PATH, compression='gzip')
     print('DESI sources in LH:', len(desi_df))
 
@@ -70,6 +70,8 @@ def spectral_parsing(mode='nnmag'):
         XRAY_RA_NAME = 'RA_fin'
         XRAY_DEC_NAME = 'DEC_fin'
 
+        SRC_NAME = 'srcname_fin'
+
         # read nnmag match results
         catalog_to_classify = pd.read_pickle(DESI_MATCH_PATH, compression='gzip')
         # TODO: up-to-date nnmag catalog needs no index reset
@@ -88,6 +90,8 @@ def spectral_parsing(mode='nnmag'):
 
         XRAY_RA_NAME = 'RA'
         XRAY_DEC_NAME = 'DEC'
+
+        SRC_NAME = 'NAME'
 
         # read srgz_preprocess.py result
         catalog_to_classify = pd.read_pickle(SRGZ_NNMAG_PATH, compression='gzip')
@@ -294,58 +298,19 @@ def spectral_parsing(mode='nnmag'):
     all_matched_df.fillna(np.nan, inplace=True)
 
     # add closest Simbad counterparts
+    # TODO: left_on and right_on column names should be the same
     all_matched_df = all_matched_df.merge(
         simbad_closest_df,
-        left_on='NAME',
+        left_on=SRC_NAME,
         right_on='srcname_fin',
         how='left'
         )
 
-    if mode == 'nnmag':
-        return all_matched_df
-
-    elif mode == 'srgz':
-
-        SAVE_PATH = f'{SAVE_DICT}/srgz_nnmag_spec.gz_pkl'
-
-        # TODO: make renaming process less messy
-        columns2rename = {
-            'srgz_spec_NAME': 'srcname',
-            'srgz_spec_class_source': 'srgz_spec_class_origin',
-            'srgz_spec_class_source_index': 'srgz_spec_class_origin_id',
-            'srgz_spec_class_final': 'srgz_spec_class',
-            'srgz_spec_redshift_final': 'srgz_spec_z'
-        }
-
-        useful_columns = [
-            'NAME', 'class_final', 'redshift_final',
-            'class_source', 'class_source_index'
-        ]
-
-        print(list(all_matched_df))
-
-        (
-            all_matched_df[useful_columns]
-            .add_prefix('srgz_spec_')
-            .rename(columns=columns2rename)
-            .reset_index(drop=True)
-            .to_pickle(SAVE_PATH)
-        )
-
-
-def main():
-
-    print()
-    print('Welcome to the LH classification script!', '\n')
-
-    spec_class_df = spectral_parsing()
-
-    # classification: extragalactic or not
-
+    # classification: spectral type
     print('PRELIMINARY CLASSIFICATION...', '\n')
     print('Joining subclasses in bigger groups for every external input catalog...', '\n')
     # add flags for GAIA stars
-    spec_class_df = lhf.star_marker(spec_class_df, s_n_threshold=5)
+    spec_class_df = lhf.star_marker(all_matched_df, s_n_threshold=5)
 
     print('GAIA stat:')
     print(spec_class_df.class_GAIA_class.value_counts().to_string(), '\n')
@@ -422,6 +387,45 @@ def main():
     final_class_stat = pd.DataFrame(spec_class_df.class_final.value_counts())
     print()
     print(final_class_stat.to_string(), '\n')
+
+    if mode == 'nnmag':
+        return spec_class_df
+
+    elif mode == 'srgz':
+
+        SAVE_PATH = f'{SAVE_DICT}/srgz_nnmag_spec.gz_pkl'
+
+        # TODO: make renaming process less messy
+        columns2rename = {
+            'srgz_spec_NAME': 'srcname',
+            'srgz_spec_class_source': 'srgz_spec_class_origin',
+            'srgz_spec_class_source_index': 'srgz_spec_class_origin_id',
+            'srgz_spec_class_final': 'srgz_spec_class',
+            'srgz_spec_redshift_final': 'srgz_spec_z'
+        }
+
+        useful_columns = [
+            'NAME', 'class_final', 'redshift_final',
+            'class_source', 'class_source_index'
+        ]
+
+        (
+            all_matched_df[useful_columns]
+            .add_prefix('srgz_spec_')
+            .rename(columns=columns2rename)
+            .reset_index(drop=True)
+            .to_pickle(SAVE_PATH)
+        )
+
+        print(f'Catalog of SRGz sources with spectral classes is saved: {SAVE_PATH}', '\n')
+
+
+def main():
+
+    print()
+    print('Welcome to the LH classification script!', '\n')
+
+    spec_class_df = spectral_parsing(mode='nnmag')
 
     # count sources without classification
     filtered_spec_class_df = spec_class_df.query(
