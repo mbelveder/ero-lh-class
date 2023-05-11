@@ -99,7 +99,8 @@ def main():
 
     # The SRGz counterparts has no spectral classification and need to be
     # cross-mathched with spectral catalogs using srgz_preprocess.py
-    print('\n', 'Adding SRGz counterparts to the X-ray sources...', '\n')
+    print()
+    print('Adding SRGz counterparts to the X-ray sources...', '\n')
     class_zph_srgz_df = (class_zph_df.merge(
         srgz_df[slim_srgz_cols].rename(columns=cols2rename),
         left_on=['RA', 'DEC'],
