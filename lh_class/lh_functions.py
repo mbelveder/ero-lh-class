@@ -9,7 +9,6 @@ from astropy import units as u
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-
 from astropy.coordinates import match_coordinates_3d
 from astropy import coordinates
 
@@ -33,7 +32,7 @@ def colnames():
     return srg_names
 
 
-def pos_r_correction(df: pd.DataFrame, pos_r_cn: str ='pos_r98'):
+def pos_r_correction(df: pd.DataFrame, pos_r_cn: str = 'pos_r98'):
     """
     TODO: redefine this function
 
@@ -47,7 +46,7 @@ def pos_r_correction(df: pd.DataFrame, pos_r_cn: str ='pos_r98'):
     corr_coeff = 1.1
     lower_lim = 5
     new_pos_name = f'{pos_r_cn}_corr'
-    
+
     df[new_pos_name] = df[pos_r_cn] * corr_coeff
     df[new_pos_name] = np.where(df[new_pos_name] > lower_lim,
                                 df[new_pos_name],
@@ -70,7 +69,7 @@ def xray_filtration(df: pd.DataFrame,
     Filters X-ray sources.
     TODO: remake processing of duplicates
     """
-    
+
     if verbouse:
         print(f'DET_LIKE_0 > {DL_thresh}')
         print(f'EXT_LIKE < {EL_thresh}')
@@ -106,10 +105,10 @@ def erosita_x_ray_filter(ero_df: pd.DataFrame,
         ero_df (pd.DataFrame): DataFrame of eROSITA data from Lockman Hole. Normally it would be `ERO_lhpv_03_23_sd01_a15_g14_orig.pkl` file
         DL_thresh (float, optional): minimum Detection likelihood . Defaults to 6.
         EL_thresh (float, optional): Maximum extension likelihood. Defaults to 6.
-    
+
     Returns:
         pd.DataFrame: DataFrame with cleaned eROSITA data
-    """  
+    """
 
 
     print(f'Number of sources after DL and EL cuts + duplicates removal: {len(ero_df)}')
@@ -161,61 +160,6 @@ def erosita_x_ray_filter(ero_df: pd.DataFrame,
     ero_df.reset_index(drop=True, inplace=True) #drop index
 
     return ero_df
-
-
-
-# xcat_orig = pd.read_pickle(data_path+'ERO_lhpv_03_23_sd01_a15_g14_orig.pkl')
-# xcat_orig = xcat_orig.query('EXT==0')
-# xcat_orig.sort_values(by='ML_FLUX_0', ascending=False, inplace=True)
-# xcat_orig = xcat_orig.drop_duplicates(subset=['srcname_fin'])
-
-
-# def cross_match_with_itself(xcat, ra_col='RA_fin', dec_col='DEC_fin', err_col='pos_r98'):
-    
-#     xcat_matched = xcat.copy()
-#     c = SkyCoord(ra=xcat[ra_col]*u.degree, dec=xcat[dec_col]*u.degree)
-#     catalog = SkyCoord(ra=xcat[ra_col]*u.degree, dec=xcat[dec_col]*u.degree)
-#     idx, ero2ero, _ = c.match_to_catalog_sky(catalog, nthneighbor=2)
-#     ero2ero = ero2ero.to(u.arcsec).value
-
-#     xcat_matched['sep_to_closest'] = ero2ero
-#     xcat_matched.loc[:, 'srcname_fin_closest'] = xcat_matched.iloc[idx]['srcname_fin'].values
-#     xcat_matched = xcat_matched.merge(xcat.rename(columns={
-#                                       'srcname_fin': 'srcname_fin_closest'}),
-#                                       on='srcname_fin_closest', how='left', suffixes=('', '_closest'))
-
-#     xcat_matched['is_confused'] = xcat_matched.eval(
-#         'sep_to_closest<sqrt( pos_r98**2 + pos_r98_closest**2 )/2 & sep_to_closest<30')
-
-#     xcat_matched['ML_FLUX_0_ratio'] = xcat_matched.ML_FLUX_0 / \
-#         xcat_matched.ML_FLUX_0_closest
-
-#     xcat_matched['ML_CTS_0_ratio'] = xcat_matched.ML_CTS_0 / \
-#         xcat_matched.ML_CTS_0_closest
-
-#     xcat_matched['DET_LIKE_0_ratio'] = xcat_matched.DET_LIKE_0 / \
-#         xcat_matched.DET_LIKE_0_closest
-
-#     xcat_matched['sep_ero2ero'] = xcat_matched['sep_to_closest']
-#     xcat_matched['pos_r98_first'] = xcat_matched['pos_r98']
-#     xcat_matched['pos_r98_second'] = xcat_matched['pos_r98_closest']
-#     xcat_matched['should_be_deleted'] = (xcat_matched['is_confused']) &(
-#                                          xcat_matched['ML_FLUX_0_ratio'] < 1)
-#                                         # so that we delete the one with lower ML_FLUX_0
-
-#     xcat_matched = xcat_matched[['srcname_fin', 'srcname_fin_closest', 'is_confused', 'ML_FLUX_0_ratio',
-#                                  'ML_CTS_0_ratio', 'DET_LIKE_0_ratio', 'sep_ero2ero', 'pos_r98_first',
-#                                  'pos_r98_second', 'should_be_deleted']]
-
-#     return xcat_matched
-
-
-# xcat_matched = cross_match_with_itself(xcat_orig)
-
-
-# id_to_retain = xcat_matched[xcat_matched.should_be_deleted == False]['srcname_fin']
-# xcat_orig = xcat_orig[xcat_orig.srcname_fin.isin(id_to_retain)]
-
 
 
 def desi_preprocessing(desi_fits_path: str) -> pd.DataFrame:
@@ -314,7 +258,7 @@ def pos_r_filter(df: pd.DataFrame, sep_cname: str) -> pd.DataFrame:
     """
 
     print(f'Before max separation filter: {len(df)}')
-    
+
     df = df[df[sep_cname] < df['pos_r98']]
 
     print(f'After max separation filter: {len(df)}')
@@ -466,7 +410,7 @@ def flux_nmagg2vega_mag(flux:pd.Series,
     """
     Converts DESI w1 flux (in nanomaggies) to
     vega magnitudes.
-    
+
     https://www.legacysurvey.org/dr9/description/
     """
     if mode=='w1':
@@ -477,11 +421,11 @@ def flux_nmagg2vega_mag(flux:pd.Series,
         delta_m = 5.174
     elif mode=='w4':
         delta_m = 6.620
-    
+
     vega_flux = flux * 10 ** (delta_m / 2.5)
     vega_mag = flux2mag(vega_flux)
     vega_mag = vega_mag.replace([np.inf, -np.inf], np.nan)
-    
+
     return vega_mag
 
 
@@ -517,7 +461,7 @@ def reliable_magnitudes(df: pd.DataFrame,
                         sb: bool=False) -> pd.DataFrame:
     """
     Calculate reliable magnitudes only for objects with reliable flux measurments.
-    
+
     https://www.legacysurvey.org/dr9/description/:
     "The fluxes can be negative for faint objects, and indeed we expect
     many such cases for the faintest objects."
@@ -532,7 +476,7 @@ def reliable_magnitudes(df: pd.DataFrame,
     Returns:
         pd.DataFrame: Catalogue with reliable magnitudes.
     """
-    
+
     for band in ['g', 'r', 'z', 'w1', 'w2', 'w3', 'w4']:
 
         flux_colname = f'flux_{band}'
@@ -658,143 +602,9 @@ def leave_closest_sep(df: pd.DataFrame, sep_name: str,
     return closest_df
 
 
-# def poisson_k(k: int, density: float, r98_df: pd.DataFrame) -> pd.DataFrame:
-#     """
-#     Функция для вычисления вероятности обнаружить `k` объектов в
-#     кружках с радиусом r98 при средней плотности `density` согласно
-#     расспределению Пуассона.
-
-#     Args:
-#         k (int): Количество объектов в кружках с радиусом r98 (arcsec).
-#         density (float): Средняя плотность (в arcsec^-2).
-#         r98_df (pd.DataFrame): Таблица с кандидатами в пределах r98.
-#     """    
-
-#     print(f'** k = {k} **')
-
-#     observed_counts_r98 = r98_df.groupby('srcname_fin').size()
-
-#     n_Gaia_idxs = observed_counts_r98[observed_counts_r98 == k].index.sort_values()
-
-#     radii = (r98_df[r98_df['srcname_fin'].isin(n_Gaia_idxs)]
-#             .sort_values('srcname_fin')['pos_r98_corr'].unique())
-
-#     rows = []
-#     for srcid, r in zip(n_Gaia_idxs, radii):
-
-#         expected_n = np.pi * r ** 2 * density
-#         probability = poisson.pmf(k, mu=expected_n) * 100
-#         row = [srcid, r, probability]
-#         rows.append(row)
-
-#     df = pd.DataFrame(rows, columns=['srcname_fin', 'pos_r98_corr', 'probability (%)'])
-#     df['pos_r98_corr'] = np.round(df['pos_r98_corr']).astype(int)
-#     df = df.sort_values('pos_r98_corr', ascending=False).reset_index(drop=True)
-
-#     return df
-
-
-# def cat2hpx(ra, dec, nside):
-#     """
-#     Convert a catalogue to a HEALPix map of number counts per resolution
-#     element.
-
-#     Parameters
-#     ----------
-#     lon, lat : (ndarray, ndarray)
-#         Coordinates of the sources in degree. If radec=True, assume input is in the icrs
-#         coordinate system. Otherwise assume input is glon, glat
-
-#     nside : int
-#         HEALPix nside of the target map
-
-#     radec : bool
-#         Switch between R.A./Dec and glon/glat as input coordinate system.
-
-#     Return
-#     ------
-#     hpx_map : ndarray
-#         HEALPix map of the catalogue number counts in Galactic coordinates
-
-#     """
-
-#     npix = hp.nside2npix(nside)
-
-#     # convert to HEALPix indices
-#     indices = hp.ang2pix(nside, ra, dec, lonlat=True)
-
-#     idx, counts = np.unique(indices, return_counts=True)
-
-#     # fill the fullsky map
-#     hpx_map = np.zeros(npix, dtype=int)
-#     hpx_map[idx] = counts
-
-#     return hpx_map, counts
-
-
-
 '''
 Classification
 '''
-
-
-# def star_slope(df: pd.DataFrame,
-#                feature_names: list,
-#                gaia_marker_cn: str) -> pd.DataFrame:
-#     """
-#     Classifies stars and not stars based on features.
-
-#     Args:
-#         df (pd.DataFrame): DataFrame with features.
-#         feature_names (list): List of features names.
-#         gaia_marker_cn (str): Gaia marker column name.
-#     """
-
-#     # Replase inf with nan (10 - 20 objects)
-#     for col in feature_names:
-#         df[col] = df[col].replace([np.inf, -np.inf], np.nan)
-
-#     # Remove nan (10 - 30 objects)
-#     df = df.dropna(subset=feature_names)
-
-#     X = df[feature_names]
-#     Y = df[gaia_marker_cn]
-
-#     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
-
-#     # Fit (train) the Logistic Regression classifier
-#     lr_clf = linear_model.LogisticRegressionCV(cv=5,
-#                                                class_weight='balanced',
-#                                                scoring='roc_auc')
-#     lr_clf.fit(X_train, y_train)
-
-#     ra_metric = roc_auc_score(y_test, lr_clf.predict_proba(X_test)[:, 1])
-
-#     y_pred_total = lr_clf.predict(X)
-#     total_confusion = confusion_matrix(Y, y_pred_total, normalize='true')
-#     total_confusion = np.round(total_confusion, 2)
-#     # print(f'Total confusion matrix: \n{total_confusion}')
-
-#     percent_matrix = np.round(total_confusion * 100).astype(int).astype(str)
-#     percent_matrix_formatted = np.zeros((2, 2)).astype(str)
-#     for (x,y), value in np.ndenumerate(percent_matrix):
-#         percent_matrix_formatted[x, y] = f' ({value}%)'
-
-#     total_confusion_number = confusion_matrix(Y, y_pred_total)
-#     # print(f'Total confusion numbers: \n{total_confusion_number}')
-
-#     total_confusion_number = np.round(total_confusion_number).astype(int).astype(str)
-#     matrix_stat = np.char.add(total_confusion_number, percent_matrix_formatted)
-#     # print(f'Total confusion matrix with percentages: \n{matrix_stat}')
-
-#     w = lr_clf.coef_[0]
-#     k = -w[0] / w[1]
-#     b = - (lr_clf.intercept_[0]) / w[1]
-
-#     def linear_func(x):
-#         return k * x + b
-
-#     return linear_func, ra_metric, matrix_stat
 
 
 def plot_scatter(star_df: pd.DataFrame,
@@ -860,7 +670,7 @@ def plot_scatter(star_df: pd.DataFrame,
         #     print(notstar_df.sort_values(by=y)[['ra', 'dec']].head(30).reset_index(drop=True))
         # sns.scatterplot(data=star_df, x=x, y=y, ax=ax, s=30, linewidth=1, zorder=3,
         #                 alpha=1, hue='spectraltype_esphs')
-        
+
         sns.scatterplot(data=notstar_df, x=x, y=y, ax=ax, s=15,
                         alpha=.5, color='gray', zorder=1, label='not star')
         ax.set_ylim(*ylims)
@@ -890,12 +700,12 @@ def plot_scatter(star_df: pd.DataFrame,
         i += 1
 
         if x=='rel_dered_lg(Fx/Fo_z_corr)' and y=='rel_dered_r_z':
-            
+ 
             _, ax1 = plt.subplots(figsize=(10, 8))
 
             sns.scatterplot(data=star_df, x=x, y=y, ax=ax1, s=20, linewidth=.8,
                         alpha=.7, edgecolor='r', color='none', zorder=2, label='star')
-        
+
             sns.scatterplot(data=notstar_df, x=x, y=y, ax=ax1, s=20,
                             alpha=.5, color='gray', zorder=1, label='not star')
             ax1.set_ylim(ylims[0], 4)
@@ -931,7 +741,7 @@ def match_desi2gaia(desi_df: pd.DataFrame,
                     gaia_df: pd.DataFrame,
                     search_radius: float = 1.0,
                     sb: bool = False):
-    
+
     """
     Mark stars in DESI dataframe based on Gaia star sample location
 
@@ -990,7 +800,7 @@ def match_desi2gaia(desi_df: pd.DataFrame,
         right_on=[prefix + 'ra', prefix + 'dec'],
         left_on=['ra_desi', 'dec_desi'], how='left'
         )
-    
+
     # Clean up
     matched_df = matched_df.drop(columns=[prefix + 'ra', prefix + 'dec'])
     # TODO: check if this is needed
@@ -1091,18 +901,18 @@ def cross_match_data_frames(df1: pd.DataFrame, df2: pd.DataFrame,
     Returns:
         pd.DataFrame: match of df1 and df2
         the columns are from the original df1 and df2 (with the prefix for df2). 
-        added columns: 
-        
+        added columns:
+
         sep - separation in arcsec
-        
+
         n_near - number of matches from df2 for a particular source from df1.
         For example n_near=10 for a source in df1 means that there are 10 sources
         in df2 within the match_radius.
-        
+
         n_matches - number of entries of a source in a final table. For example,
         if some soruce lying between two X-ray soruces and falling into the
         match_radius for both of them, n_matches=2.
-    
+
     example:
     cross_match_data_frames(
         desi,
@@ -1248,20 +1058,13 @@ def closer_match(
         ra=closer_match_df[f'{df_prefix}_{colname_ra2}']*u.degree,
         dec=closer_match_df[f'{df_prefix}_{colname_dec2}']*u.degree,
     )
-    
+
     closer_match_df[f'{df_prefix}_cpart_closest_sep'] = closer_coord.separation(desi_coord).arcsec
 
     print()
     print(f'{len(closer_match_df)} sources in {df_prefix} catalog are closer to ERO than DESI {df_prefix} counterpart.')
 
     return closer_match_df
-
-
-# def rss(arr_1, arr_2):
-#     """
-#     Root sum square of two arrays.
-#     """
-#     return np.sqrt(arr_1**2 + arr_2**2)
 
 
 def star_marker(df: pd.DataFrame, s_n_threshold: float, SB=True) -> pd.DataFrame:
@@ -1324,7 +1127,7 @@ def calc_lumin(Fx, z):
 
     lumin = 4 * np.pi * Fx * (u.erg/u.s/u.cm**2) * (cosmo.luminosity_distance(z))**2
     lumin = lumin.to(u.erg/u.s).value
-    
+
     return lumin
 
 
@@ -1345,7 +1148,7 @@ def calc_lumin_from_prlx(flux, parallax):
 
     lumin = 4 * np.pi * flux * (u.erg/u.s/u.cm**2) * distance**2
     lumin = lumin.to(u.erg/u.s).value
-    
+
     return lumin
 
 
@@ -1356,7 +1159,7 @@ def G08_best_fit_soft(
         f_b: float = 10**(-0.04) * 1e-14,
         K: float = 1.51e16
         ) -> np.ndarray:
-    
+
     """
     G08_best_fit_soft: best fit logNlogS from the paper of Georgakakis 2008 for
     soft 0.5-2 keV band. Those source counts are dominated by AGN
@@ -1384,6 +1187,7 @@ def G08_best_fit_soft(
             )
 
     return N
+
 
 def inclined_edge(x):
     """
@@ -1453,7 +1257,7 @@ def inside_beak(row):
         return True
     else:
         return False
-    
+
 
 def plot_decision_scatter(df, ax=None, wise=False):
     """
@@ -1469,9 +1273,9 @@ def plot_decision_scatter(df, ax=None, wise=False):
     """
 
     if wise:
-        x='desi_rel_dered_lg(Fx/Fo_z_corr)'
+        x = 'desi_rel_dered_lg(Fx/Fo_z_corr)'
 
-        y='desi_vega_mag_w1_w2'
+        y = 'desi_vega_mag_w1_w2'
         ylabel = 'color (w1 - w2)'
 
         xlims = np.array([-3.8, 2])
@@ -1485,8 +1289,8 @@ def plot_decision_scatter(df, ax=None, wise=False):
         xlims = np.array([-3.8, 2])
         ylims = [-.5, 2.7]
 
-        x='desi_rel_dered_lg(Fx/Fo_z_corr)'
-        y='desi_rel_dered_r_z'
+        x = 'desi_rel_dered_lg(Fx/Fo_z_corr)'
+        y = 'desi_rel_dered_r_z'
 
         ylabel = 'color (r - z)'
 
@@ -1530,9 +1334,6 @@ def plot_decision_scatter(df, ax=None, wise=False):
         edgecolor='r', linewidth=2, zorder=6, label='GALACTIC (non-Gaia)'
         )
 
-    # ax.set_xlim(*xlims)
-    # ax.set_ylim(*ylims)
-
     handles, labels = plt.gca().get_legend_handles_labels()
     lgnd = ax.legend(
         [handles[idx] for idx in order], [labels[idx] for idx in order],
@@ -1548,6 +1349,7 @@ def plot_decision_scatter(df, ax=None, wise=False):
 
     return ax
 
+
 def assign_final_class(row):
     '''
     Assign final class based on the following priority:
@@ -1562,7 +1364,8 @@ def assign_final_class(row):
         return row['class_SIMBAD_class']
     else:
         return 'UNKNOWN'
-    
+
+
 def assign_class_source(row):
     '''
     Assign source of the final class
@@ -1579,6 +1382,7 @@ def assign_class_source(row):
     else:
         return np.nan
 
+
 def assign_final_redshift(row):
     '''
     Assign final redshift based on the following priority:
@@ -1592,7 +1396,8 @@ def assign_final_redshift(row):
             return row.SIMBAD_z_rel
         else:
             return np.nan
-    
+
+
 def assign_redshift_source(row):
     '''
     Assign final redshift based on the following priority:
@@ -1606,7 +1411,7 @@ def assign_redshift_source(row):
         return 'SIMBAD'
     else:
         return np.nan
-    
+
 
 def assign_class_source_index(row):
     '''
