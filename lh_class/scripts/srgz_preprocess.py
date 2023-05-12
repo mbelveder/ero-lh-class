@@ -39,7 +39,9 @@ mediate_dir_path = f'{args.output_path}/mediate_data'
 Path(mediate_dir_path).mkdir(parents=True, exist_ok=True)
 
 srgz_cat_path = f'{args.input_path}/lhpv_03_23_sd01_a15_g14_srgz_CatA_XnX_model4_SQG_model5_v20221207'
-matched_class_path = f'{args.output_path}/mediate_data/srgz_nnmag.gz_pkl'
+
+# path to the matched and classified catalog
+matched_class_path = f'{mediate_dir_path}/matched_and_classified.gz_pkl'
 
 save_directory = os.path.dirname(matched_class_path)
 # create saving directory if it doesn't exist
@@ -53,10 +55,7 @@ def main():
     print()
     print('Adding SRGz features to the nnmag counterparts...', '\n')
 
-    class_df = pd.read_pickle(
-        'data/mediate_data/matched_and_classified.gz_pkl',
-        compression='gzip'
-        )
+    class_df = pd.read_pickle(matched_class_path, compression='gzip')
 
     full_srgz_df = pd.read_pickle(srgz_cat_path, compression='gzip')
     full_srgz_df.srcname_fin = full_srgz_df.srcname_fin.str.decode('utf-8')
