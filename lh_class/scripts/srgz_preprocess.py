@@ -10,11 +10,42 @@ import pandas as pd
 from lh_class import lh_functions as lhf
 pd.options.mode.chained_assignment = None
 from pathlib import Path
+import argparse
 from astropy.coordinates import SkyCoord
 
-SRGZ_PATH = 'data/input_data/lhpv_03_23_sd01_a15_g14_srgz_CatA_XnX_model4_SQG_model5_v20221207'
-SAVE_PATH = 'data/output_data/srgz_nnmag.gz_pkl'
-save_directory = os.path.dirname(SAVE_PATH)
+INPUT_HELPSTR = 'Please enter the path to the input data. \
+It can be downloaded here: https://disk.yandex.ru/d/UybgtHAwTIdaWA'
+OUTPUT_HELPSTR = 'Please enter the path to the output directory.'
+
+parser = argparse.ArgumentParser()  # create a parser
+
+# specify the arguments
+# TODO: make shure that the link is correct before the release
+parser.add_argument(
+    '-input_path', '-i', type=str, required=True, help=INPUT_HELPSTR
+    )
+parser.add_argument(
+    '-output_path', '-o', type=str, required=True, help=OUTPUT_HELPSTR
+    )
+
+args = parser.parse_args()
+input_dir_path = args.input_path
+
+# path to save the table of sources matched with external catalogs
+# and classified as extragalactic/not extragalactic
+# this is mediate (auxiliary) data
+mediate_dir_path = f'{args.output_path}/mediate_data'
+# create saving directory if it doesn't exist
+Path(mediate_dir_path).mkdir(parents=True, exist_ok=True)
+
+srgz_cat_path = f'{args.input_path}/lhpv_03_23_sd01_a15_g14_srgz_CatA_XnX_model4_SQG_model5_v20221207'
+matched_class_path = f'{args.output_path}/mediate_data/srgz_nnmag.gz_pkl'
+
+save_directory = os.path.dirname(matched_class_path)
+# create saving directory if it doesn't exist
+Path(save_directory).mkdir(parents=True, exist_ok=True)
+
+srgz_prepared_path = f'{save_directory}/srgz_nnmag.gz_pkl'
 
 
 def main():
@@ -23,11 +54,11 @@ def main():
     print('Adding SRGz features to the nnmag counterparts...', '\n')
 
     class_df = pd.read_pickle(
-        'data/output_data/matched_and_classified.gz_pkl',
+        'data/mediate_data/matched_and_classified.gz_pkl',
         compression='gzip'
         )
 
-    full_srgz_df = pd.read_pickle(SRGZ_PATH, compression='gzip')
+    full_srgz_df = pd.read_pickle(srgz_cat_path, compression='gzip')
     full_srgz_df.srcname_fin = full_srgz_df.srcname_fin.str.decode('utf-8')
 
     # mutables are hard to merge, so here I make tuples form pdz arrays
@@ -36,8 +67,8 @@ def main():
     # SRGz catalog (only best counterparts)
     srgz_df = full_srgz_df.query('srg_match_flag==1')
 
-    print(f'Всего источников SRGz: {len(srgz_df)}')
-    print(f'Всего источников nway: {len(class_df)}')
+    print(f'Number of the SRGz sources: {len(srgz_df)}')
+    print(f'Number of the nway sources: {len(class_df)}')
 
     zph_target_columns = [
         'ls_ra', 'ls_dec', 'srgz_z_max',
@@ -63,8 +94,6 @@ def main():
         df_prefix='nn',
         closest=True
     )
-
-    # class_zph_df.to_pickle(f'{save_directory}/class_zph.pkl')
 
     slim_srgz_cols = [
         'srcname_fin', 'RA_fin', 'DEC_fin', 'ls_ra', 'ls_dec', 'g',
@@ -134,10 +163,8 @@ def main():
 
     # create saving directory if it doesn't exist
 
-    Path(save_directory).mkdir(parents=True, exist_ok=True)
-
-    class_zph_srgz_df.to_pickle(SAVE_PATH, compression='gzip')
-    print(f'Preprocessed SRGz catalog is saved: {SAVE_PATH}')
+    class_zph_srgz_df.to_pickle(srgz_prepared_path, compression='gzip')
+    print(f'Preprocessed SRGz catalog is saved: {srgz_prepared_path}')
 
 
 if __name__ == '__main__':

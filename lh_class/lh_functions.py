@@ -18,17 +18,17 @@ def colnames():
     # Словарь для унификации имен колонок
 
     srg_names = {
-                'id_src_name': 'srcname_fin',  # Индексы рентгеновских источников
-                'x_ra_name': 'RA_fin',  # Координаты рентгеновских источников
-                'x_dec_name': 'DEC_fin',
-                'dl_name': 'DET_LIKE_0',  # Detection Likelihood
-                'x_flux_name': 'flux_05-20',
-                'ext_name': 'EXT_LIKE',  # Протяженность рентгеновских источников
-                'ls_ra_name': 'ra',  # Координаты источников DESI
-                'ls_dec_name': 'dec',
-                'r_98_name': 'pos_r98',  # Позиционная ошибка
-                'sigma_2d_name': 'pos_sigma_2d'
-                }
+        'id_src_name': 'srcname_fin',  # Индексы рентгеновских источников
+        'x_ra_name': 'RA_fin',  # Координаты рентгеновских источников
+        'x_dec_name': 'DEC_fin',
+        'dl_name': 'DET_LIKE_0',  # Detection Likelihood
+        'x_flux_name': 'flux_05-20',
+        'ext_name': 'EXT_LIKE',  # Протяженность рентгеновских источников
+        'ls_ra_name': 'ra',  # Координаты источников DESI
+        'ls_dec_name': 'dec',
+        'r_98_name': 'pos_r98',  # Позиционная ошибка
+        'sigma_2d_name': 'pos_sigma_2d'
+        }
     return srg_names
 
 
@@ -122,7 +122,7 @@ def erosita_x_ray_filter(ero_df: pd.DataFrame,
         ero2ero = ero2ero.to(u.arcsec).value
 
         xcat_matched['sep_to_closest'] = ero2ero
-        xcat_matched.loc[:, 'srcname_fin_closest']  = xcat_matched.iloc[idx]['srcname_fin'].values
+        xcat_matched.loc[:, 'srcname_fin_closest'] = xcat_matched.iloc[idx]['srcname_fin'].values
         xcat_matched = xcat_matched.merge(xcat.rename(columns={'srcname_fin':'srcname_fin_closest'}), on='srcname_fin_closest', how='left', suffixes=('', '_closest'))
 
         xcat_matched['is_confused'] = xcat_matched.eval('sep_to_closest<10') # close pairs for sep < 10. They are marked and the brightest one is kept
@@ -134,7 +134,6 @@ def erosita_x_ray_filter(ero_df: pd.DataFrame,
         xcat_matched['pos_r98_first'] = xcat_matched['pos_r98']
         xcat_matched['pos_r98_second'] = xcat_matched['pos_r98_closest']
         xcat_matched['should_be_deleted'] = (xcat_matched['is_confused']) &  (xcat_matched['ML_FLUX_0_ratio']<1) #so that we delete the one with lower ML_FLUX_0
-
 
         xcat_matched = xcat_matched[['srcname_fin', 'srcname_fin_closest', 'is_confused', 'ML_FLUX_0_ratio', 'ML_CTS_0_ratio', 'DET_LIKE_0_ratio', 'sep_ero2ero', 'pos_r98_first', 'pos_r98_second', 'should_be_deleted']]
 
@@ -157,7 +156,7 @@ def erosita_x_ray_filter(ero_df: pd.DataFrame,
     ero_df = ero_df[ero_df.srcname_fin.isin(id_to_retain)]
 
     print(f'Number of sources after DL and EL cuts + duplicates removal: {len(ero_df)}')
-    ero_df.reset_index(drop=True, inplace=True) #drop index
+    ero_df.reset_index(drop=True, inplace=True)  #drop index
 
     return ero_df
 
@@ -1235,7 +1234,7 @@ def validation_classifier(row):
         row (pd.Series): row of the validation dataframe
     """
 
-    x='desi_rel_dered_lg(Fx/Fo_z_corr)'
+    x = 'desi_rel_dered_lg(Fx/Fo_z_corr)'
 
     if row['desi_type'] != 'PSF':
         return 'extragalactic'
@@ -1284,7 +1283,7 @@ def plot_decision_scatter(df, ax=None, wise=False):
         order = [3, 2, 0, 1]
 
         ax.axhline(0.05, color='k', linestyle='--', zorder=0)
-    
+
     else:
         xlims = np.array([-3.8, 2])
         ylims = [-.5, 2.7]
@@ -1299,7 +1298,7 @@ def plot_decision_scatter(df, ax=None, wise=False):
         plt.plot([-1.4, -3.5, -1.4], [1, 0.5, 0.5], c='gray', lw=1.5, ls='--')
         plt.axvline(-1.4, c='k', lw=2)
 
-    print('Всего объектов:', len(df))
+    print('Tonal number of sources:', len(df))
     print()
 
     unknown_df = df[df['class_final']=='UNKNOWN']
