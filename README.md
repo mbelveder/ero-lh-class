@@ -19,12 +19,12 @@ TODO: describe the content
 ### Usage:
 
 ```
-lh-class-pipeline -input_path /path/to/downloads -output_path /path/to/save/result/data
+lh-class-pipeline -input_path /path/to/downloaded/data -output_path /path/to/save/result/data
 ```
 or just
 
 ```
-lh-class-pipeline -i /path/to/downloads -o /path/to/save/result/data
+lh-class-pipeline -i /path/to/downloaded/data -o /path/to/save/result/data
 ```
 
 Note: the output directory will be created (with parents) if not exist already.
