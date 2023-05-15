@@ -35,7 +35,7 @@ Note: the output directory will be created (with parents) if not exist already.
 
 - **lh-srgz-perp**: SRGz preprocessing. As a result, evry nnmag counterpart has SRGz features AND every X-ray source has two version of optical counterparts (nnmag and SRGz). Mostly these two counterparts is the same optical source, but not all of them.
 
-- **lh-srgz-spec**: cross-match with spectral catalogs and databases for the SRGz catalogs (Mescheryakov et al, in preparation), similar to the lh-class.
+- **lh-srgz-spec**: cross-match with spectral catalogs and databases for the SRGz catalogs (Mescheryakov et al, in preparation), similar to the `lh-class`.
 
 - **lh-postprocess**: join all the auxiliary tables into sinle catalog, columns renaming and reduction.
 
