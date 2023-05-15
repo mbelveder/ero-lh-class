@@ -27,6 +27,8 @@ or just
 lh-class-pipeline -i /path/to/downloads -o /path/to/save/result/data
 ```
 
+Note: the output directory will be created (with parents) if not exist already.
+
 ### Building blocks
 
 - **lh-class**: cross-match with the spectral catalogs and databases for the nnmag catalog (Bykov, Belvedersky, Gilfanov; 2022).
