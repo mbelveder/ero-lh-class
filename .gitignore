@@ -1,6 +1,7 @@
 **/.DS_Store
 **/__pycache__
 /data
+/dist
 /.vscode
 /.venv
 playground.ipynb
