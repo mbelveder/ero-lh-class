@@ -30,15 +30,15 @@ input_dir_path = args.input_path
 
 # DESI soruces in LH
 # https://www.notion.so/LH-data-95f7ad4a14cc4b2d8ef4e3a3237bd29b?pvs=4#a0fa7d64a06a42f4b8ed8a03d25cb736
-DESI_PATH = f'{input_dir_path}/desi_mask_lh.gz_pkl'
+DESI_PATH = input_dir_path + 'desi_mask_lh.gz_pkl'
 
 # GAIA sources in LH
 # https://www.notion.so/LH-data-95f7ad4a14cc4b2d8ef4e3a3237bd29b?pvs=4#781138565e554d4e935a1ce5651db3ca
-GAIA_PATH = f'{input_dir_path}/gaia_dr3_astroph_4-result.csv'
+GAIA_PATH = input_dir_path + 'gaia_dr3_astroph_4-result.csv'
 
 # SDSS sources in LH
 # https://www.notion.so/LH-data-95f7ad4a14cc4b2d8ef4e3a3237bd29b?pvs=4#2f3fedf2068746949dc2cddbdb201a90
-SDSS_PATH = f'{input_dir_path}/sdss_tap.csv'
+SDSS_PATH = input_dir_path + 'sdss_tap.csv'
 
 # DESI positional errors, downloaded separately to merge with SB catalogue
 # The reason they are here is to avoid re-running the SB piplene
@@ -48,31 +48,31 @@ SDSS_PATH = f'{input_dir_path}/sdss_tap.csv'
 # https://www.notion.so/LH-data-95f7ad4a14cc4b2d8ef4e3a3237bd29b?pvs=4#e61e989c1773400aae34c6f984012a2e
 # TODO: check if the cross-match file is up to date (why some date is in the name?)
 NNMAG_CAT_FILENAME = 'ERO_lhpv_03_23_sd01_a15_g14_desi_nway_match_21_10_22.gz_pkl'
-DESI_MATCH_PATH = f'{input_dir_path}/{NNMAG_CAT_FILENAME}'
-MILQ_PATH = f'{input_dir_path}/milliquas_LH.csv'
-SIMBAD_PATH = f'{input_dir_path}/simbad_df.pkl'
+DESI_MATCH_PATH = input_dir_path + NNMAG_CAT_FILENAME
+MILQ_PATH = input_dir_path + 'milliquas_LH.csv'
+SIMBAD_PATH = input_dir_path + 'simbad_df.pkl'
 
 # path to save the table of sources matched with external catalogs
 # and classified as extragalactic/not extragalactic
 # this is mediate (auxiliary) data
-mediate_dir_path = f'{args.output_path}/mediate_data'
+mediate_dir_path = args.output_path + 'mediate_data/'
 # create saving directory if it doesn't exist
 Path(mediate_dir_path).mkdir(parents=True, exist_ok=True)
 
 # path to the file produced by the srgz_preprocess.py
-srgz_prep_path = f'{mediate_dir_path}/srgz_nnmag.gz_pkl'
+srgz_prep_path = mediate_dir_path + 'srgz_nnmag.gz_pkl'
 
 # path to the srgz_spec file
-srgz_spec_path = f'{mediate_dir_path}/srgz_nnmag_spec.gz_pkl'
+srgz_spec_path = mediate_dir_path + 'srgz_nnmag_spec.gz_pkl'
 
 # path to the matched and classified catalog
-matched_class_path = f'{mediate_dir_path}/matched_and_classified.gz_pkl'
+matched_class_path = mediate_dir_path + 'matched_and_classified.gz_pkl'
 
 # path to the result catalog
-result_dir_path = f'{args.output_path}/result_data'
+result_dir_path = args.output_path + 'result_data/'
 # create saving directory if it doesn't exist
 Path(result_dir_path).mkdir(parents=True, exist_ok=True)
-result_path = f'{result_dir_path}/lh_nnmag_srgz.gz_pkl'
+result_path = result_dir_path + 'lh_nnmag_srgz.gz_pkl'
 
 # ECF given by MG in 2022
 ECF_MG_241122 = 0.7228

@@ -34,20 +34,21 @@ input_dir_path = args.input_path
 # path to save the table of sources matched with external catalogs
 # and classified as extragalactic/not extragalactic
 # this is mediate (auxiliary) data
-mediate_dir_path = f'{args.output_path}/mediate_data'
+mediate_dir_path = args.output_path + 'mediate_data/'
 # create saving directory if it doesn't exist
 Path(mediate_dir_path).mkdir(parents=True, exist_ok=True)
 
-srgz_cat_path = f'{args.input_path}/lhpv_03_23_sd01_a15_g14_srgz_CatA_XnX_model4_SQG_model5_v20221207'
+SRGZ_FILENAME = 'lhpv_03_23_sd01_a15_g14_srgz_CatA_XnX_model4_SQG_model5_v20221207'
+srgz_cat_path = args.input_path + SRGZ_FILENAME
 
 # path to the matched and classified catalog
-matched_class_path = f'{mediate_dir_path}/matched_and_classified.gz_pkl'
+matched_class_path = mediate_dir_path + 'matched_and_classified.gz_pkl'
 
 save_directory = os.path.dirname(matched_class_path)
 # create saving directory if it doesn't exist
 Path(save_directory).mkdir(parents=True, exist_ok=True)
 
-srgz_prepared_path = f'{save_directory}/srgz_nnmag.gz_pkl'
+srgz_prepared_path = save_directory + '/srgz_nnmag.gz_pkl'
 
 
 def main():
