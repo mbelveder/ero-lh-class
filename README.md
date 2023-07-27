@@ -1,5 +1,7 @@
 # eROSITA Lockman Hole source classification
 
+This repository accompanies the paper "SRG/eROSITA Survey in the Lockman Hole: Classification of X-ray Sources" (Belvedersky, Bykov, Gilfanov; 2022) published in Astronomy Letters.
+
 Binary classification (extragalactic or not) of the eROSITA LH sources; cross-match with spectral catalogs and databases; creation procedure of the eROSITA Lockman Hole catalog.
 
 ### Requirements
@@ -9,14 +11,12 @@ Python 3.9 or higher
 ### Installation
 
 ```
-pip3 install git+https://github.com/mbelveder/lh.git
+pip3 install git+https://github.com/mbelveder/ero-lh-class.git
 ```
 
 ### Input data
 
-[Download](https://disk.yandex.ru/d/F_Q55KtS36gV8A)
-
-TODO: describe the content
+The input data will be available after the Lockman Hole catalog is published.
 
 ### Usage:
 
