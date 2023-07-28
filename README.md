@@ -1,6 +1,6 @@
 # eROSITA Lockman Hole source classification
 
-This repository accompanies the paper "SRG/eROSITA Survey in the Lockman Hole: Classification of X-ray Sources" (Belvedersky, Bykov, Gilfanov; 2022) published in Astronomy Letters.
+This repository accompanies the paper ["SRG/eROSITA Survey in the Lockman Hole: Classification of X-ray Sources"](https://arxiv.org/abs/2307.14737) (Belvedersky, Bykov, Gilfanov; 2022) published in Astronomy Letters.
 
 Binary classification (extragalactic or not) of the eROSITA LH sources; cross-match with spectral catalogs and databases; creation procedure of the eROSITA Lockman Hole catalog.
 
